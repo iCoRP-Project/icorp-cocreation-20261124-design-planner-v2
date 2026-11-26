@@ -1,0 +1,3136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ホテルギャラリー・ポスター</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mincho: ['"Shippori Mincho"', '"Hiragino Mincho ProN"', '"Yu Mincho"', 'serif'],
+                        cinzel: ['Cinzel', 'serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <!-- Google Fonts（BIZ UDPゴシック：読みやすさに配慮したUDフォント／しっぽり明朝：見出し・ポスターの和文） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Maru+Gothic:wght@500;700&family=Cinzel:wght@400;500;600&family=Montserrat:wght@300;400;500;600&family=Shippori+Mincho:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        html { font-size: 17px; }
+        body {
+            font-family: 'BIZ UDPGothic', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            line-height: 1.7;
+        }
+
+        /* スライダー：つまみを大きく、溝を太くして操作しやすく */
+        input[type="range"] {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 36px; background: transparent; cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 8px; border-radius: 999px; background: #57534e;
+        }
+        input[type="range"]::-moz-range-track {
+            height: 8px; border-radius: 999px; background: #57534e;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 30px; height: 30px; margin-top: -11px; border-radius: 50%;
+            background: #f5f5f4; border: 3px solid #a8a29e; box-shadow: 0 2px 6px rgba(0,0,0,.5);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 26px; height: 26px; border-radius: 50%;
+            background: #f5f5f4; border: 3px solid #a8a29e; box-shadow: 0 2px 6px rgba(0,0,0,.5);
+        }
+        input[type="range"]:focus-visible { outline: 2px solid #fde68a; outline-offset: 2px; border-radius: 8px; }
+        input[type="checkbox"], input[type="radio"] { width: 24px; height: 24px; accent-color: #d6d3d1; flex-shrink: 0; }
+        input[type="color"] { -webkit-appearance: none; appearance: none; border: none; padding: 0; background: none; cursor: pointer; }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: 2px solid rgba(255,255,255,.35); border-radius: 12px; }
+        input[type="color"]::-moz-color-swatch { border: 2px solid rgba(255,255,255,.35); border-radius: 12px; }
+        #posterCanvas { touch-action: none; }
+        #posterCanvas:focus { outline: none; }
+        #posterCanvas:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+
+        /* 印刷：ポスターだけを A4 に大きく印刷する */
+        #print-area { display: none; }
+        @page { size: A4 portrait; margin: 8mm; }
+        @media print {
+            body > *:not(#print-area) { display: none !important; }
+            body { background: #fff !important; min-height: 0 !important; display: block !important; }
+            #print-area { display: flex !important; justify-content: center; align-items: center; width: 100%; height: 280mm; }
+            #print-img { display: block; max-width: 100%; max-height: 280mm; width: auto; height: auto; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+
+    </style>
+    <style type="text/tailwindcss">
+        @layer components {
+            .panel { @apply bg-stone-900/80 p-5 sm:p-6 rounded-2xl border border-stone-700/70 shadow-2xl space-y-5; }
+            .step-title { @apply flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mincho text-xl font-semibold text-stone-50 leading-snug; }
+            .step-no { @apply font-cinzel text-base text-amber-200 tracking-widest; }
+            .step-en { @apply font-cinzel text-xs tracking-[0.2em] text-stone-400 ml-auto; }
+            .help { @apply text-base text-stone-300 leading-relaxed; }
+            .btn { @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-4 py-2 rounded-xl border border-stone-600 bg-stone-800 text-stone-100 text-base leading-tight hover:bg-stone-700 hover:border-stone-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 disabled:opacity-40 disabled:cursor-not-allowed; }
+            .btn-primary { @apply bg-stone-100 text-stone-950 border-stone-100 font-bold hover:bg-white hover:border-white; }
+            .btn-ghost { @apply bg-transparent border-transparent hover:bg-stone-800 hover:border-stone-600; }
+            .btn-danger { @apply text-rose-200 border-rose-900/70 hover:bg-rose-950 hover:border-rose-700; }
+            .btn-on { @apply bg-amber-100 text-stone-950 border-amber-100 font-bold hover:bg-amber-50; }
+            .field { @apply w-full px-4 py-3 bg-stone-950 border border-stone-600 rounded-xl text-base text-stone-50 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-200/70 focus:border-stone-400; }
+            .label { @apply block text-base font-bold text-stone-100 mb-1.5; }
+            .subbox { @apply bg-stone-950/60 p-4 rounded-xl border border-stone-700; }
+            .tool-btn { @apply flex flex-col items-center justify-center gap-1 min-w-[60px] min-h-[60px] px-2 rounded-xl text-stone-50 text-sm leading-none hover:bg-stone-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200; }
+            .tool-btn i { @apply text-lg; }
+            .tool-del { @apply text-rose-200 hover:bg-rose-950; }
+        }
+    </style>
+</head>
+<body class="bg-stone-950 text-stone-100 min-h-screen flex flex-col antialiased selection:bg-stone-600 selection:text-white">
+
+    <!-- ヘッダー -->
+    <header class="bg-stone-950/95 backdrop-blur-md border-b border-stone-800 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-3 min-h-[80px] flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 rounded-full border border-stone-600 flex items-center justify-center text-amber-100">
+                    <i class="fa-solid fa-feather"></i>
+                </div>
+                <div>
+                    <h1 class="font-mincho text-lg sm:text-xl font-semibold text-stone-50 leading-tight">ホテルギャラリー・ポスター</h1>
+                    <p class="font-cinzel text-xs tracking-[0.25em] text-stone-400">HOTEL GALLERY EDITION</p>
+                </div>
+            </div>
+            <div id="header-actions" class="flex flex-wrap items-center gap-3">
+                <span id="save-status" class="text-sm text-stone-300" aria-live="polite"></span>
+                <button type="button" id="btn-works" class="btn"><i class="fa-regular fa-folder-open"></i>作品の一覧と保存</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-12 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        <!-- 操作パネル（左側） -->
+        <section class="lg:col-span-5 space-y-6">
+
+            <!-- 1. テーマ -->
+            <div class="panel">
+                <h2 class="step-title"><span class="step-no">01</span>テーマをえらぶ<span class="step-en">Theme</span></h2>
+                <p class="help">好きなテーマを押すと、ポスターの案が3つできあがります。</p>
+                <div id="theme-list" class="grid grid-cols-2 gap-2"></div>
+            </div>
+
+            <!-- 2. 案 -->
+            <div class="panel scroll-mt-28" id="proposal-panel">
+                <h2 class="step-title"><span class="step-no">02</span>気に入った案をえらぶ<span class="step-en">Proposals</span></h2>
+                <p class="help" id="proposal-help"></p>
+                <div id="proposal-list" class="grid grid-cols-3 gap-2 sm:gap-3"></div>
+                <button type="button" id="btn-more-proposals" class="btn w-full"><i class="fa-solid fa-wand-magic-sparkles"></i>ほかの案を見る</button>
+            </div>
+
+            <!-- 3. 組み合わせの見本 -->
+            <div class="panel" id="guide-panel">
+                <h2 class="step-title"><span class="step-no">03</span>いろいろな組み合わせ<span class="step-en">Compositions</span></h2>
+                <p class="help">形の組み合わせ方は、ほかにもこんなものがあります。見本を押すと、その組み合わせのポスターになります。</p>
+                <div id="guide-list" class="grid grid-cols-1 gap-2"></div>
+                <p class="help subbox"><i class="fa-solid fa-lightbulb text-amber-200 mr-1"></i>同じ組み合わせでも、下の「雰囲気を変える」で<strong class="text-stone-50">線だけ</strong>や<strong class="text-stone-50">切り絵</strong>にすると、印象ががらりと変わります。「形を変える」では、図形を1つずつ足したり消したりもできます。</p>
+            </div>
+
+            <!-- 4. ことば -->
+            <div class="panel">
+                <h2 class="step-title"><span class="step-no">04</span>ことばを入れる<span class="step-en">Words</span></h2>
+                <div>
+                    <label for="poster-title" class="label">作品のタイトル</label>
+                    <input type="text" id="poster-title" class="field font-mincho text-lg" maxlength="40" placeholder="例：縁側の午後">
+                    <p class="help mt-1">日本語でも英語でも入れられます。長いときは自動で小さくなります。</p>
+                </div>
+                <div>
+                    <label for="poster-message" class="label">ひとこと</label>
+                    <textarea id="poster-message" class="field font-mincho leading-relaxed" rows="3" maxlength="90" placeholder="例：子どものころ過ごした家の縁側を思い出して作りました。"></textarea>
+                    <p class="help mt-1"><span id="message-count">0</span>／90文字。作品にこめた思いを書きましょう。</p>
+                </div>
+                <div>
+                    <label for="author-name" class="label">お名前（呼び名）</label>
+                    <input type="text" id="author-name" class="field" maxlength="20" placeholder="例：さくら">
+                    <p class="help mt-1">ポスターの下に「作」として入ります。入れなくてもかまいません。</p>
+                </div>
+                <label class="flex items-center gap-3 text-base text-stone-200 cursor-pointer min-h-[48px]">
+                    <input type="checkbox" id="show-swatches" checked>
+                    ポスターに色見本をのせる
+                </label>
+                <p class="help -mt-3">色見本の下には、色のコード（#165E83 のような16進数）が入ります。</p>
+            </div>
+
+            <p class="font-mincho text-lg text-stone-200 px-1 pt-2">もっと自分らしくしたいときは、下を開いて直せます。</p>
+
+            <!-- 4. 雰囲気 -->
+            <details class="panel group">
+                <summary class="step-title cursor-pointer list-none min-h-[48px] items-center">
+                    <span class="step-no">05</span>雰囲気を変える
+                    <i class="fa-solid fa-chevron-down ml-auto text-stone-300 text-base transition-transform group-open:rotate-180"></i>
+                </summary>
+                <p class="help">文字の置き方や背景、図形の描き方を変えると、同じ色でもがらりと雰囲気が変わります。</p>
+                <div id="style-options" class="space-y-4"></div>
+            </details>
+
+            <!-- 5. 色 -->
+            <details class="panel group">
+                <summary class="step-title cursor-pointer list-none min-h-[48px] items-center">
+                    <span class="step-no">06</span>色を変える
+                    <i class="fa-solid fa-chevron-down ml-auto text-stone-300 text-base transition-transform group-open:rotate-180"></i>
+                </summary>
+                <div>
+                    <p class="label">このテーマのほかの配色</p>
+                    <div id="preset-list" class="space-y-2.5"></div>
+                </div>
+                <p class="help">色の四角をタップすると色を変えられます。思い出の色や好きな色を足すこともできます。色の名前は、見分けやすいように自由につけられます（ポスターにはのりません）。</p>
+                <div id="palette-list" class="space-y-3"></div>
+                <button type="button" id="btn-add-color" class="btn w-full"><i class="fa-solid fa-plus"></i>色を足す</button>
+
+                <!-- 写真から色をひろう -->
+                <div class="subbox space-y-4" id="photo-tool">
+                    <h3 class="font-mincho text-lg font-semibold text-stone-50"><i class="fa-regular fa-image text-amber-200 mr-1"></i>写真から色をひろう</h3>
+                    <p class="help">思い出の写真を開いて、気になるところをタップすると、その色をパレットに足せます。写真はこの端末の中だけで使い、どこにも送りません。</p>
+                    <button type="button" id="btn-photo" class="btn w-full"><i class="fa-solid fa-camera"></i>写真をえらぶ</button>
+                    <input type="file" id="photo-file" accept="image/*" class="hidden">
+                    <div id="photo-area" class="hidden space-y-3">
+                        <canvas id="photo-canvas" class="w-full h-auto rounded-lg border border-stone-600 cursor-crosshair" style="touch-action: none;" aria-label="写真。タップした場所の色をひろいます"></canvas>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div id="photo-swatch" class="w-16 h-16 rounded-xl border-2 border-white/30 flex-shrink-0"></div>
+                            <div class="flex-1 min-w-[10em]">
+                                <p class="text-base text-stone-100">ひろった色 <span id="photo-hex" class="font-mono text-stone-300"></span></p>
+                                <p class="text-sm text-stone-300">写真の上を指でなぞると、色が変わります。</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" id="btn-add-photo-color" class="btn btn-primary flex-1"><i class="fa-solid fa-plus"></i>この色をパレットに足す</button>
+                            <button type="button" id="btn-photo-close" class="btn"><i class="fa-solid fa-xmark"></i>写真を閉じる</button>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <!-- 6. 形 -->
+            <details class="panel group">
+                <summary class="step-title cursor-pointer list-none min-h-[48px] items-center">
+                    <span class="step-no">07</span>形を変える
+                    <i class="fa-solid fa-chevron-down ml-auto text-stone-300 text-base transition-transform group-open:rotate-180"></i>
+                </summary>
+                <p class="help">図形を足して、ポスターの上で指やマウスで動かしましょう。選んだ図形の右下に出る丸いつまみを引くと、大きさが変わります。</p>
+                <div>
+                    <p class="label">図形を足す</p>
+                    <div id="shape-add" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2"></div>
+                </div>
+                <div class="subbox space-y-1">
+                    <div class="flex justify-between items-center">
+                        <label for="shape-scale" class="font-bold text-stone-100">全体の大きさ</label>
+                        <span id="scale-value" class="font-mono text-stone-200 bg-stone-900 px-2 py-0.5 rounded border border-stone-700">1.0倍</span>
+                    </div>
+                    <input type="range" id="shape-scale" min="0.5" max="1.6" step="0.1" value="1.0">
+                </div>
+                <label class="flex items-center gap-3 text-base text-stone-200 cursor-pointer min-h-[48px]">
+                    <input type="checkbox" id="show-red-outline">
+                    選択中の図形を示す枠を表示する
+                </label>
+                <div>
+                    <p class="label">置いた図形 <span class="font-normal text-stone-300">（上にあるものほど前に見えます）</span></p>
+                    <div class="space-y-3" id="sub-shape-controls"></div>
+                </div>
+            </details>
+        </section>
+
+        <!-- ポスターのプレビュー（右側） -->
+        <section class="lg:col-span-7 lg:sticky lg:top-28 flex flex-col items-center order-first lg:order-none">
+            <div class="w-full panel flex flex-col items-center">
+
+                <div class="w-full flex flex-wrap items-center justify-between gap-3">
+                    <h2 class="step-title"><i class="fa-solid fa-image text-amber-200 text-base"></i>できあがり<span class="step-en">Gallery Preview</span></h2>
+                    <div id="preview-actions" class="flex flex-wrap gap-2">
+                        <button type="button" id="btn-undo" class="btn" disabled>
+                            <i class="fa-solid fa-rotate-left"></i> ひとつ戻す
+                        </button>
+                        <button type="button" id="btn-print" class="btn">
+                            <i class="fa-solid fa-print"></i> 印刷する
+                        </button>
+                        <button type="button" id="btn-download" class="btn btn-primary">
+                            <i class="fa-solid fa-download"></i> 画像で保存
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 額縁のような背景 -->
+                <div class="w-full flex justify-center items-center bg-[#0a0a0a] p-4 sm:p-6 rounded-2xl border border-stone-800 overflow-hidden shadow-2xl relative">
+                    <div class="absolute inset-2 border border-stone-800/60 pointer-events-none rounded-xl"></div>
+                    <div id="canvas-stage" class="relative w-full">
+                        <canvas id="posterCanvas" class="block w-full h-auto rounded shadow-2xl" width="1600" height="2262" aria-label="ポスターのプレビュー。図形を押すと、動かす・回す・消すことができます"></canvas>
+                        <!-- 選んだ図形のそばに出るボタン（画面だけ。保存・印刷には出ない） -->
+                        <div id="shape-toolbar" class="absolute hidden z-10 gap-1 p-1.5 rounded-2xl bg-stone-900/95 border border-stone-500 shadow-2xl" role="toolbar" aria-label="選んだ図形の操作">
+                            <button type="button" data-act="rotl" class="tool-btn" aria-label="左に回す"><i class="fa-solid fa-rotate-left"></i><span>左に回す</span></button>
+                            <button type="button" data-act="rotr" class="tool-btn" aria-label="右に回す"><i class="fa-solid fa-rotate-right"></i><span>右に回す</span></button>
+                            <button type="button" data-act="front" class="tool-btn" aria-label="いちばん前に出す"><i class="fa-solid fa-layer-group"></i><span>前に出す</span></button>
+                            <button type="button" data-act="dup" class="tool-btn" aria-label="おなじ図形をもうひとつ"><i class="fa-regular fa-clone"></i><span>複製</span></button>
+                            <button type="button" data-act="del" class="tool-btn tool-del" aria-label="この図形を消す"><i class="fa-solid fa-trash-can"></i><span>消す</span></button>
+                        </div>
+                    </div>
+                </div>
+
+                <p id="canvas-help" class="help text-center">
+                    <i class="fa-solid fa-hand-pointer text-amber-200"></i> 図形を押すと、回す・消すボタンが出ます。押したまま動かすと位置が変わります。<br class="hidden sm:inline">
+                    上の丸いつまみで回し、右下の丸いつまみで大きさを変えられます。
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 作品の一覧・保存・読み込み -->
+    <dialog id="works-dialog" class="bg-stone-900 text-stone-100 rounded-2xl border border-stone-600 shadow-2xl p-0 w-[min(760px,calc(100vw-24px))] max-h-[calc(100vh-24px)] backdrop:bg-black/70">
+        <div class="p-5 sm:p-6 space-y-5">
+            <div class="flex items-center justify-between gap-3">
+                <h2 class="font-mincho text-xl font-semibold text-stone-50">作品の一覧と保存</h2>
+                <button type="button" id="btn-close-works" class="btn btn-sm btn-ghost" aria-label="閉じる"><i class="fa-solid fa-xmark text-lg"></i>閉じる</button>
+            </div>
+            <p class="help">作品はこの端末のブラウザに自動で保存されます。別の日や別の端末で続きをつくるときは「ファイルに書き出す」で保存し、次の回に「ファイルから読み込む」で開いてください。</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button type="button" id="btn-new-work" class="btn btn-primary"><i class="fa-solid fa-plus"></i>新しい作品をはじめる</button>
+                <button type="button" id="btn-export-current" class="btn"><i class="fa-solid fa-file-export"></i>この作品をファイルに書き出す</button>
+                <button type="button" id="btn-import" class="btn"><i class="fa-solid fa-file-import"></i>ファイルから読み込む</button>
+            </div>
+            <div>
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <p class="label mb-0">保存されている作品</p>
+                    <button type="button" id="btn-export-all" class="btn btn-sm btn-ghost"><i class="fa-solid fa-box-archive"></i>すべての作品を書き出す</button>
+                </div>
+                <div id="works-list" class="space-y-2 max-h-[50vh] overflow-y-auto pr-1"></div>
+            </div>
+        </div>
+    </dialog>
+    <input type="file" id="import-file" accept=".json,application/json" class="hidden">
+
+    <!-- 印刷用（画面には出さない） -->
+    <div id="print-area"><img id="print-img" alt="ポスター"></div>
+
+    <!-- お知らせ（トースト） -->
+    <div id="toast" role="status" aria-live="polite" class="fixed bottom-6 right-6 left-6 sm:left-auto bg-stone-800 border border-stone-500 text-stone-50 text-base px-5 py-4 rounded-xl shadow-2xl flex items-center gap-3 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none z-50">
+        <i class="fa-solid fa-check text-amber-200"></i>
+        <span id="toast-message">カラーコードをコピーしました</span>
+        <button type="button" id="toast-action" class="hidden btn btn-sm btn-primary ml-2 whitespace-nowrap"></button>
+    </div>
+
+    <!-- JavaScript ロジック -->
+    <script>
+        // ===== テーマ =====
+        // テーマを選ぶと、ここに書いた候補の中から配色・構図・描き方を組み合わせて、案を自動でつくる。
+        //
+        // 新しいテーマを足すときは、下の形をまねて1つ追加する：
+        //   id           … 半角英字の名前（ほかと重ならないもの）
+        //   name / en    … 画面に出る名前 ／ ポスターに小さく入る英語名
+        //   desc         … テーマ選びのボタンに出る短い説明
+        //   palettes     … 配色（5色前後）。bg は背景にする色の番号（0から数える）
+        //   layouts      … 文字の置き方   gallery（下に横書き）/ vertical（右に縦書き）/ centered（まんなか）/ bold（色の面）
+        //   backgrounds  … 背景           paper（紙）/ solid（無地）/ washi（和紙）/ glow（光）
+        //   frames       … 枠             line / double / corner / none
+        //   fonts        … 文字の形       mincho（明朝）/ maru（丸ゴシック）/ gothic（ゴシック）
+        //   shapeStyles  … 図形の描き方   soft（すける）/ flat（ぬりつぶし）/ line（線だけ）/ paper（切り絵）
+        //   compositions … 構図           cluster（重ねる）/ stack（積む）/ orbit（めぐる）/ scatter（散らす）/ grid（ならべる）/ landscape（風景）/ diagonal（ななめ）
+        //   shapes       … 使う図形       SHAPE_TYPES の id
+        //   titles       … タイトルの例
+        const THEMES = [
+            {
+                id: 'lobby', name: '静かなホテルのロビー', en: 'Quiet Lobby', desc: 'コンクリートと光の、落ちついた空間',
+                palettes: [
+                    { name: '建築のコンクリート', bg: 4, colors: [
+                        { hex: '#1C1C1E', name: '炭色' }, { hex: '#3A3A3C', name: '打ちっぱなしの灰' }, { hex: '#636366', name: '鉛色' },
+                        { hex: '#AEAEB2', name: '霞の銀' }, { hex: '#F2F2F7', name: 'しっくいの白' }] },
+                    { name: '北欧のフィヨルド', bg: 4, colors: [
+                        { hex: '#11161A', name: '深い海の黒' }, { hex: '#232D36', name: '岩肌の青灰' }, { hex: '#485A6A', name: '鋼の青' },
+                        { hex: '#95A5B3', name: '氷河の霧' }, { hex: '#F4F6F8', name: '新雪の白' }] }
+                ],
+                layouts: ['gallery', 'centered'], backgrounds: ['paper', 'solid'], frames: ['line', 'double'],
+                fonts: ['mincho', 'gothic'], shapeStyles: ['soft', 'flat'], compositions: ['cluster', 'stack', 'orbit'],
+                shapes: ['circle', 'double-circle', 'arch', 'rect', 'half', 'line'],
+                titles: ['静けさの午後', 'ロビーの光', 'AESTHETIC SILENCE', '余白のある部屋']
+            },
+            {
+                id: 'spring', name: '春の庭', en: 'Spring Garden', desc: 'さくらと若葉、やわらかな日ざし',
+                palettes: [
+                    { name: 'さくらの庭', bg: 4, colors: [
+                        { hex: '#6B4F4F', name: '桜の幹' }, { hex: '#E8A1B0', name: '撫子色' }, { hex: '#F6C6CF', name: '桜色' },
+                        { hex: '#A8C97F', name: '若草色' }, { hex: '#FBF5F3', name: '花冷えの白' }] },
+                    { name: '菜の花畑', bg: 4, colors: [
+                        { hex: '#3E5641', name: '深い緑' }, { hex: '#F2C94C', name: '菜の花色' }, { hex: '#9CC5A1', name: '若葉' },
+                        { hex: '#F7E7B4', name: '卵色' }, { hex: '#FFFDF5', name: '春霞' }] }
+                ],
+                layouts: ['vertical', 'centered', 'gallery'], backgrounds: ['washi', 'paper', 'glow'], frames: ['corner', 'none', 'line'],
+                fonts: ['mincho', 'maru'], shapeStyles: ['soft', 'paper'], compositions: ['scatter', 'cluster'],
+                shapes: ['circle', 'leaf', 'half', 'ring', 'double-circle'],
+                titles: ['花のたより', '春のうたげ', 'さくら咲く庭', 'うららかな日']
+            },
+            {
+                id: 'summer', name: '夏の海辺', en: 'Summer Seaside', desc: '青い海と白い砂浜、夕焼けの浜',
+                palettes: [
+                    { name: '海と空', bg: 4, colors: [
+                        { hex: '#0B3C5D', name: '深い海' }, { hex: '#328CC1', name: '空色' }, { hex: '#D9B310', name: '砂浜の日差し' },
+                        { hex: '#8FC1E3', name: '浅瀬' }, { hex: '#F4F1E8', name: '白い砂' }] },
+                    { name: '夕暮れの浜', bg: 4, colors: [
+                        { hex: '#2E2A4F', name: '宵の空' }, { hex: '#E76F51', name: '夕焼け' }, { hex: '#F4A261', name: '浜の灯り' },
+                        { hex: '#2A9D8F', name: '夕凪の海' }, { hex: '#FDF0E0', name: '貝殻' }] }
+                ],
+                layouts: ['gallery', 'bold', 'centered'], backgrounds: ['paper', 'glow', 'solid'], frames: ['line', 'none'],
+                fonts: ['mincho', 'gothic', 'maru'], shapeStyles: ['flat', 'soft'], compositions: ['landscape', 'diagonal'],
+                shapes: ['half', 'band', 'circle', 'wave', 'line'],
+                titles: ['夏の終わりの海', '潮騒', '水平線', 'SEASIDE MEMORIES']
+            },
+            {
+                id: 'autumn', name: '秋の紅葉', en: 'Autumn Leaves', desc: '紅葉の山と、実りの季節',
+                palettes: [
+                    { name: '紅葉の山', bg: 4, colors: [
+                        { hex: '#3B2A20', name: '焦茶' }, { hex: '#B7282E', name: '茜色' }, { hex: '#E08A1E', name: '柿色' },
+                        { hex: '#C9A227', name: '黄金色' }, { hex: '#F5EEDC', name: '生成り' }] },
+                    { name: '栗と稲穂', bg: 4, colors: [
+                        { hex: '#4A3B2A', name: '栗皮色' }, { hex: '#8E5B3C', name: '胡桃色' }, { hex: '#D4A84B', name: '稲穂' },
+                        { hex: '#9C6644', name: '朽葉色' }, { hex: '#F3EBDD', name: '練色' }] }
+                ],
+                layouts: ['vertical', 'gallery'], backgrounds: ['washi', 'paper'], frames: ['corner', 'double'],
+                fonts: ['mincho'], shapeStyles: ['paper', 'soft'], compositions: ['scatter', 'stack', 'cluster'],
+                shapes: ['leaf', 'circle', 'half', 'quarter', 'triangle'],
+                titles: ['秋のたより', 'もみじ狩り', '実りの季節', '山の錦']
+            },
+            {
+                id: 'winter', name: '冬の雪景色', en: 'Winter Snow', desc: 'しんしんと降る雪と、あたたかな灯り',
+                palettes: [
+                    { name: '雪の夜', bg: 4, colors: [
+                        { hex: '#F4F6F8', name: '新雪' }, { hex: '#AFC4D6', name: '雪明かり' }, { hex: '#6E8BA8', name: '冬空' },
+                        { hex: '#C9A45C', name: '窓の灯り' }, { hex: '#14213D', name: '冬の夜' }] },
+                    { name: '雪の朝', bg: 4, colors: [
+                        { hex: '#2B3A4A', name: '鉄紺' }, { hex: '#8AA5BD', name: '薄氷' }, { hex: '#C7D7E5', name: '霜' },
+                        { hex: '#B04A4A', name: '南天の実' }, { hex: '#FAFCFD', name: '銀世界' }] }
+                ],
+                layouts: ['centered', 'vertical'], backgrounds: ['glow', 'solid'], frames: ['double', 'line', 'none'],
+                fonts: ['mincho'], shapeStyles: ['soft', 'line'], compositions: ['scatter', 'orbit'],
+                shapes: ['circle', 'star', 'ring', 'double-circle'],
+                titles: ['しんしんと', '雪の便り', '冬ごもり', '白い朝']
+            },
+            {
+                id: 'kissa', name: '昭和の喫茶店', en: 'Retro Kissaten', desc: 'クリームソーダとナポリタンの、なつかしい色',
+                palettes: [
+                    { name: 'クリームソーダ', bg: 4, colors: [
+                        { hex: '#4E342E', name: 'コーヒー' }, { hex: '#2E8B57', name: 'メロンソーダ' }, { hex: '#D9534F', name: 'さくらんぼ' },
+                        { hex: '#F0C987', name: 'プリン' }, { hex: '#FFF6E5', name: 'クリーム' }] },
+                    { name: 'ナポリタン', bg: 4, colors: [
+                        { hex: '#3D2B1F', name: '焦げ茶' }, { hex: '#C8553D', name: 'ケチャップ' }, { hex: '#E9A23B', name: 'からし色' },
+                        { hex: '#6A994E', name: 'ピーマン' }, { hex: '#F7EBD3', name: '生成りのクロス' }] }
+                ],
+                layouts: ['bold', 'centered', 'gallery'], backgrounds: ['solid', 'paper'], frames: ['double', 'corner'],
+                fonts: ['maru', 'gothic'], shapeStyles: ['flat', 'paper'], compositions: ['grid', 'stack', 'orbit'],
+                shapes: ['circle', 'half', 'quarter', 'rect', 'ring', 'band'],
+                titles: ['純喫茶', '午後のクリームソーダ', 'なつかしの味', 'レトロな午後']
+            },
+            {
+                id: 'kyoto', name: '京都の夜', en: 'Kyoto Night', desc: '提灯のあかりと、月夜の瓦屋根',
+                palettes: [
+                    { name: '祇園の夜', bg: 4, colors: [
+                        { hex: '#C9A45C', name: '金' }, { hex: '#B33E2E', name: '朱色' }, { hex: '#E8D9B5', name: '提灯のあかり' },
+                        { hex: '#3A3F58', name: '藍鼠' }, { hex: '#16151D', name: '漆黒' }] },
+                    { name: '月と瓦', bg: 4, colors: [
+                        { hex: '#D8C9A3', name: '月白' }, { hex: '#8C7853', name: '煤竹' }, { hex: '#5B6770', name: '瓦の色' },
+                        { hex: '#9E3D22', name: '弁柄' }, { hex: '#1E2229', name: '夜の瓦' }] }
+                ],
+                layouts: ['vertical', 'centered'], backgrounds: ['glow', 'washi', 'solid'], frames: ['corner', 'line'],
+                fonts: ['mincho'], shapeStyles: ['line', 'flat', 'soft'], compositions: ['orbit', 'stack', 'cluster'],
+                shapes: ['arch', 'circle', 'double-circle', 'ring', 'half', 'line'],
+                titles: ['京の夜', '月あかり', '路地の灯', '古都の宵']
+            },
+            {
+                id: 'satoyama', name: 'ふるさとの田んぼ', en: 'Hometown Fields', desc: '里山と田んぼ、夕日のあぜ道',
+                palettes: [
+                    { name: '田植えのころ', bg: 4, colors: [
+                        { hex: '#2F4F2F', name: '山の緑' }, { hex: '#6B8E23', name: '苗の緑' }, { hex: '#87CEEB', name: '水田の空' },
+                        { hex: '#C2B280', name: 'あぜ道' }, { hex: '#F6F5EE', name: '白い雲' }] },
+                    { name: '黄金の稲穂', bg: 4, colors: [
+                        { hex: '#3E3A2E', name: '土の色' }, { hex: '#D4A017', name: '黄金色' }, { hex: '#A0522D', name: '夕日' },
+                        { hex: '#7A8B5A', name: '里山' }, { hex: '#FAF3E0', name: '秋の空' }] }
+                ],
+                layouts: ['gallery', 'bold', 'vertical'], backgrounds: ['paper', 'washi'], frames: ['line', 'none'],
+                fonts: ['mincho', 'maru'], shapeStyles: ['flat', 'paper'], compositions: ['landscape'],
+                shapes: ['half', 'band', 'circle', 'triangle', 'line'],
+                titles: ['ふるさとの景色', '里山の夕暮れ', '田んぼのあぜ道', 'なつかしい道']
+            },
+            {
+                id: 'bauhaus', name: '幾何学のリズム', en: 'Geometric Rhythm', desc: 'まる・さんかく・しかくの、はっきりした形',
+                palettes: [
+                    { name: '三原色', bg: 4, colors: [
+                        { hex: '#111111', name: '墨' }, { hex: '#D7263D', name: '赤' }, { hex: '#F4C430', name: '黄' },
+                        { hex: '#1B4F9C', name: '青' }, { hex: '#F2EDE4', name: '生成り' }] },
+                    { name: 'くすみ三色', bg: 4, colors: [
+                        { hex: '#2B2B2B', name: '炭' }, { hex: '#C0583A', name: '煉瓦' }, { hex: '#E3B448', name: '芥子' },
+                        { hex: '#3C6E71', name: '青緑' }, { hex: '#EFE8DC', name: '紙' }] }
+                ],
+                layouts: ['bold', 'gallery', 'centered'], backgrounds: ['solid', 'paper'], frames: ['none', 'line'],
+                fonts: ['gothic'], shapeStyles: ['flat'], compositions: ['grid', 'diagonal'],
+                shapes: ['circle', 'half', 'quarter', 'rect', 'triangle', 'band'],
+                titles: ['かたちの音楽', 'リズム', 'GEOMETRY', 'まる・さんかく・しかく']
+            },
+            {
+                id: 'starry', name: '星空', en: 'Starry Night', desc: '満天の星と、夜明け前の空',
+                palettes: [
+                    { name: '満天の星', bg: 4, colors: [
+                        { hex: '#F7E7A1', name: '星の光' }, { hex: '#C9A45C', name: '月の金' }, { hex: '#5C6BC0', name: '夜の青' },
+                        { hex: '#9FA8DA', name: '天の川' }, { hex: '#0D1B2A', name: '夜空' }] },
+                    { name: '夜明け前', bg: 4, colors: [
+                        { hex: '#FFD6A5', name: '明けの明星' }, { hex: '#FF9E80', name: '朝焼け' }, { hex: '#6D597A', name: '紫の空' },
+                        { hex: '#B5838D', name: '薄紅' }, { hex: '#1D1A31', name: '夜明け前の空' }] }
+                ],
+                layouts: ['centered', 'vertical', 'gallery'], backgrounds: ['glow', 'solid'], frames: ['none', 'double'],
+                fonts: ['mincho', 'maru'], shapeStyles: ['soft', 'flat', 'line'], compositions: ['orbit', 'scatter'],
+                shapes: ['star', 'circle', 'ring', 'double-circle'],
+                titles: ['星に願いを', '満天の星', '夜のしじま', '月夜']
+            },
+            {
+                id: 'kimono', name: '着物の柄', en: 'Kimono Patterns', desc: '日本の伝統色と、着物のような柄',
+                palettes: [
+                    { name: '四季のうつろい', bg: 4, colors: [
+                        { hex: '#165E83', name: '藍色' }, { hex: '#B7282E', name: '茜色' }, { hex: '#F8B500', name: '山吹色' },
+                        { hex: '#68BE8D', name: '若竹色' }, { hex: '#FBFAF5', name: '生成り色' }] },
+                    { name: '着物と町家', bg: 4, colors: [
+                        { hex: '#595857', name: '墨' }, { hex: '#8F2E14', name: '弁柄色' }, { hex: '#928C36', name: '鶯色' },
+                        { hex: '#888E7E', name: '利休鼠' }, { hex: '#FFFFFC', name: '胡粉色' }] },
+                    { name: 'ふるさとの景色', bg: 4, colors: [
+                        { hex: '#192F60', name: '紺青' }, { hex: '#ED6D3D', name: '柿色' }, { hex: '#AACF53', name: '萌黄' },
+                        { hex: '#00A3AF', name: '浅葱色' }, { hex: '#F7FCFE', name: '卯の花色' }] }
+                ],
+                layouts: ['vertical', 'gallery', 'bold'], backgrounds: ['washi', 'paper', 'solid'], frames: ['corner', 'double'],
+                fonts: ['mincho'], shapeStyles: ['flat', 'paper'], compositions: ['diagonal', 'grid', 'stack'],
+                shapes: ['quarter', 'half', 'circle', 'band', 'rect', 'leaf'],
+                titles: ['和のかたち', '着物の記憶', '晴れの日', '市松の庭']
+            },
+            {
+                id: 'zen', name: '禅の庭', en: 'Zen Garden', desc: '白木と苔、石庭の静けさ',
+                palettes: [
+                    { name: '侘び寂びの木', bg: 4, colors: [
+                        { hex: '#1A1917', name: '焼き杉' }, { hex: '#423E37', name: 'くるみ材' }, { hex: '#8C8275', name: '洗い石' },
+                        { hex: '#D9D4CB', name: '麻' }, { hex: '#F7F5F0', name: '和紙' }] },
+                    { name: '苔むす庭', bg: 4, colors: [
+                        { hex: '#161A17', name: '苔' }, { hex: '#354038', name: '松の緑' }, { hex: '#8C968E', name: '若草のかすみ' },
+                        { hex: '#E3E5E2', name: '川石' }, { hex: '#FAFAFA', name: '朝もや' }] }
+                ],
+                layouts: ['vertical', 'centered'], backgrounds: ['washi', 'solid'], frames: ['none', 'line'],
+                fonts: ['mincho'], shapeStyles: ['soft', 'line'], compositions: ['orbit', 'cluster', 'stack'],
+                shapes: ['circle', 'ring', 'half', 'line', 'double-circle'],
+                titles: ['無心', '石と苔', '静寂', '一期一会']
+            },
+            {
+                id: 'terracotta', name: '南欧の陽だまり', en: 'Southern Sun', desc: '白い壁とテラコッタの、あたたかな色',
+                palettes: [
+                    { name: 'モダン・テラコッタ', bg: 4, colors: [
+                        { hex: '#1A1512', name: 'エスプレッソ' }, { hex: '#8C4A32', name: '焼き土の赤茶' }, { hex: '#C28E61', name: '黄土色' },
+                        { hex: '#D6C7B2', name: '砂岩' }, { hex: '#FAF7F2', name: 'あたたかな白' }] },
+                    { name: 'あたたかな土', bg: 4, colors: [
+                        { hex: '#221A16', name: 'こげ茶' }, { hex: '#A35C44', name: '素焼きの土' }, { hex: '#D9A066', name: '砂漠の夕日' },
+                        { hex: '#E8E1D5', name: '生成りのリネン' }, { hex: '#FFFFFF', name: 'まっさらな白' }] }
+                ],
+                layouts: ['gallery', 'bold'], backgrounds: ['paper', 'solid'], frames: ['line', 'none'],
+                fonts: ['gothic', 'maru'], shapeStyles: ['flat', 'paper'], compositions: ['stack', 'landscape', 'grid'],
+                shapes: ['arch', 'half', 'circle', 'quarter', 'rect'],
+                titles: ['陽だまりの壁', '南の窓辺', 'TERRACOTTA', '白壁の家']
+            },
+            {
+                id: 'brass', name: '真鍮のラウンジ', en: 'Midnight Lounge', desc: '夜のホテルのバー、真鍮のきらめき',
+                palettes: [
+                    { name: '真鍮と黒', bg: 0, colors: [
+                        { hex: '#0D0D0D', name: '夜の黒曜石' }, { hex: '#262626', name: '黒鉛' }, { hex: '#C49A45', name: 'いぶし真鍮' },
+                        { hex: '#D9D2C3', name: 'シャンパンの絹' }, { hex: '#F7F5F0', name: '象牙の紙' }] },
+                    { name: '深いビロード', bg: 1, colors: [
+                        { hex: '#0A0D0F', name: '闇の黒' }, { hex: '#17212B', name: '墨の紺' }, { hex: '#B89753', name: 'くすんだ金' },
+                        { hex: '#8A99A8', name: '鋼の灰' }, { hex: '#F5F6F8', name: '真珠の白' }] }
+                ],
+                layouts: ['centered', 'bold'], backgrounds: ['solid', 'glow'], frames: ['double', 'corner'],
+                fonts: ['mincho'], shapeStyles: ['line', 'flat'], compositions: ['orbit', 'stack'],
+                shapes: ['arch', 'circle', 'ring', 'line', 'double-circle', 'rect'],
+                titles: ['MIDNIGHT LOUNGE', '真鍮の夜', 'GRAND HOTEL', '静かな乾杯']
+            }
+        ];
+        const DEFAULT_THEME_ID = 'lobby';
+        const themeById = id => THEMES.find(t => t.id === id) || THEMES[0];
+        // 以前の形式（雰囲気 mood）のデータを、近いテーマに読みかえる
+        const OLD_MOOD_TO_THEME = { calm: 'lobby', energetic: 'terracotta', luxury: 'brass', natural: 'zen', japanese: 'kimono' };
+
+        const MAX_COLORS = 10;
+        const MIN_COLORS = 2;
+
+        // 図形の種類（icon は一覧・ボタン用の小さな SVG）
+        const SHAPE_TYPES = [
+            { id: 'circle',        label: '丸',     extent: 1.0,  icon: '<circle cx="12" cy="12" r="9"/>' },
+            { id: 'double-circle', label: '二重丸', extent: 1.07, icon: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="12" cy="12" r="3.6"/>' },
+            { id: 'half',          label: '半円',   extent: 1.0,  icon: '<path d="M3 16 A9 9 0 0 1 21 16 Z"/>' },
+            { id: 'rect',          label: '四角',   extent: 1.0,  icon: '<rect x="5" y="5" width="14" height="14" rx="1"/>' },
+            { id: 'band',          label: '帯',     extent: 1.22, icon: '<rect x="2" y="9.5" width="20" height="5"/>' },
+            { id: 'triangle',      label: '三角',   extent: 1.0,  icon: '<path d="M12 3 L21 19 L3 19 Z"/>' },
+            { id: 'arch',          label: 'アーチ', extent: 1.05, icon: '<path d="M6 21 V10 A6 6 0 0 1 18 10 V21 Z"/>' },
+            { id: 'wave',          label: 'だ円',   extent: 1.3,  icon: '<ellipse cx="12" cy="12" rx="10" ry="5.5"/>' },
+            { id: 'ring',          label: '輪',     extent: 1.0,  icon: '<path fill-rule="evenodd" d="M12 3a9 9 0 1 0 0.01 0Zm0 4.5a4.5 4.5 0 1 1-0.01 0Z"/>' },
+            { id: 'quarter',       label: '扇',     extent: 1.0,  icon: '<path d="M4 20 V4 A16 16 0 0 1 20 20 Z"/>' },
+            { id: 'line',          label: '線',     extent: 1.22, icon: '<rect x="2" y="11" width="20" height="2"/>' },
+            { id: 'leaf',          label: '葉',     extent: 1.0,  icon: '<path d="M12 2 Q20 12 12 22 Q4 12 12 2 Z"/>' },
+            { id: 'star',          label: '星',     extent: 1.0,  icon: '<path d="M12 2 L14.6 8.9 L22 9.2 L16.2 13.8 L18.2 21 L12 16.9 L5.8 21 L7.8 13.8 L2 9.2 L9.4 8.9 Z"/>' }
+        ];
+
+        // ===== 雰囲気（描き方）の選択肢 =====
+        // セッションで項目を足すときは、ここに追加して drawPoster 側の分岐を増やす
+        const STYLE_OPTIONS = {
+            layout: {
+                label: '文字の置き方',
+                choices: [
+                    { id: 'gallery',  label: '下に横書き' },
+                    { id: 'vertical', label: '右に縦書き' },
+                    { id: 'centered', label: 'まんなかに' },
+                    { id: 'bold',     label: '色の面と大きな文字' }
+                ]
+            },
+            background: {
+                label: '背景',
+                choices: [
+                    { id: 'paper', label: '紙' },
+                    { id: 'solid', label: '無地' },
+                    { id: 'washi', label: '和紙' },
+                    { id: 'glow',  label: '光' }
+                ]
+            },
+            frame: {
+                label: '枠',
+                choices: [
+                    { id: 'line',   label: '細い線' },
+                    { id: 'double', label: '二重線' },
+                    { id: 'corner', label: '角かざり' },
+                    { id: 'none',   label: 'なし' }
+                ]
+            },
+            font: {
+                label: '文字の形',
+                choices: [
+                    { id: 'mincho', label: '明朝', css: '"Shippori Mincho", serif' },
+                    { id: 'maru',   label: '丸ゴシック', css: '"Zen Maru Gothic", sans-serif' },
+                    { id: 'gothic', label: 'ゴシック', css: '"BIZ UDPGothic", sans-serif' }
+                ]
+            },
+            shapeStyle: {
+                label: '図形の描き方',
+                choices: [
+                    { id: 'soft',  label: 'すける' },
+                    { id: 'flat',  label: 'ぬりつぶし' },
+                    { id: 'line',  label: '線だけ' },
+                    { id: 'paper', label: '切り絵' }
+                ]
+            }
+        };
+        const DEFAULT_STYLE = { layout: 'gallery', background: 'paper', frame: 'line', font: 'mincho', shapeStyle: 'soft' };
+        function normalizeStyle(raw) {
+            const out = { ...DEFAULT_STYLE };
+            if (raw && typeof raw === 'object') {
+                Object.keys(STYLE_OPTIONS).forEach(key => {
+                    if (STYLE_OPTIONS[key].choices.some(c => c.id === raw[key])) out[key] = raw[key];
+                });
+            }
+            return out;
+        }
+        const shapeTypeInfo = type => SHAPE_TYPES.find(t => t.id === type) || SHAPE_TYPES[0];
+        function shapeIconSvg(type, color = 'currentColor', size = 24) {
+            return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" style="color:${color}" aria-hidden="true">${shapeTypeInfo(type).icon}</svg>`;
+        }
+
+        // ===== 小さな道具 =====
+        let uidCounter = 0;
+        function uid(prefix = 'id') {
+            uidCounter += 1;
+            return `${prefix}-${Date.now().toString(36)}-${uidCounter.toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+        }
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
+        function normalizeHex(hex) {
+            let h = String(hex || '').trim().replace('#', '');
+            if (/^[0-9a-fA-F]{3}$/.test(h)) h = h.split('').map(c => c + c).join('');
+            if (!/^[0-9a-fA-F]{6}$/.test(h)) return '#888888';
+            return '#' + h.toUpperCase();
+        }
+        function hexToRgb(hex) {
+            const n = parseInt(normalizeHex(hex).slice(1), 16);
+            return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+        }
+        function rgbToHex({ r, g, b }) {
+            const c = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+            return ('#' + c(r) + c(g) + c(b)).toUpperCase();
+        }
+        // t=0 で a、t=1 で b
+        function mixHex(a, b, t) {
+            const A = hexToRgb(a), B = hexToRgb(b);
+            return rgbToHex({ r: A.r + (B.r - A.r) * t, g: A.g + (B.g - A.g) * t, b: A.b + (B.b - A.b) * t });
+        }
+        function luminance(hex) {
+            const { r, g, b } = hexToRgb(hex);
+            const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+            return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+        }
+        function contrast(a, b) {
+            const la = luminance(a), lb = luminance(b);
+            return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+        }
+        function adjustBrightness(hex, percent) {
+            let num = parseInt(normalizeHex(hex).replace("#", ""), 16),
+                amt = Math.round(2.55 * percent),
+                R = (num >> 16) + amt,
+                G = (num >> 8 & 0x00FF) + amt,
+                B = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+        }
+
+        function paletteFromPreset(preset) {
+            return preset.colors.map(c => ({ id: uid('c'), hex: c.hex, name: c.name, memory: '' }));
+        }
+
+        // ===== ポスターの寸法 =====
+        // 描画はすべて 800×1131 の「設計座標」で行い、表示・保存・印刷のときに倍率を掛ける
+        const W = 800, H = 1131;
+        const DISPLAY_K = 2; // 画面表示は2倍の解像度で描いてくっきり見せる
+        const BASE_SIZE = 210;
+
+        // ===== 状態 =====
+        const state = {
+            themeId: DEFAULT_THEME_ID,
+            paletteIndex: 0,
+            palette: paletteFromPreset(THEMES[0].palettes[0]),
+            bgId: null,
+            author: '',
+            scale: 1.0,
+            showGuide: false,
+            title: 'わたしのギャラリー',
+            message: '',
+            showSwatches: true,
+            shapes: [],
+            style: { ...DEFAULT_STYLE },
+            selectedId: null
+        };
+
+        const $ = id => document.getElementById(id);
+        const canvas = $('posterCanvas');
+        let ctx = canvas.getContext('2d'); // 保存・印刷のときは一時的に別のキャンバスに差し替える
+        const hitCtx = document.createElement('canvas').getContext('2d'); // クリック判定専用
+
+        // ===== 色の役割 =====
+        function findColor(id) {
+            return state.palette.find(c => c.id === id) || null;
+        }
+        function lightestColor() {
+            return state.palette.reduce((best, c) => (!best || luminance(c.hex) > luminance(best.hex) ? c : best), null);
+        }
+        function getBgColor() {
+            return findColor(state.bgId) || lightestColor() || { id: null, hex: '#FAF8F5' };
+        }
+        // 図形に使える色（背景以外）
+        function shapeColorCandidates() {
+            const bg = getBgColor();
+            const list = state.palette.filter(c => c.id !== bg.id);
+            return list.length ? list : state.palette;
+        }
+        function getShapeHex(shape) {
+            const c = findColor(shape.colorId);
+            return c ? c.hex : normalizeHex(shape.hex);
+        }
+        // ポスターの文字色：背景との差がいちばん大きいパレットの色。差が足りなければ黒か白
+        function textColorsFor(palette, bg) {
+            let main = null, best = 0;
+            palette.forEach(c => {
+                const cr = contrast(c.hex, bg);
+                if (cr > best) { best = cr; main = c.hex; }
+            });
+            if (!main || best < 4.5) main = luminance(bg) > 0.35 ? '#1C1C1C' : '#F5F3EE';
+            return { main, sub: mixHex(main, bg, 0.35), faint: mixHex(main, bg, 0.75) };
+        }
+        function getTextColors() {
+            return textColorsFor(state.palette, getBgColor().hex);
+        }
+        // 「色の面」の色：背景と文字の色以外で、いちばん色みの強い色
+        function panelColorFor(palette, bg) {
+            const text = textColorsFor(palette, bg.hex);
+            const chroma = hex => { const { r, g, b } = hexToRgb(hex); return Math.max(r, g, b) - Math.min(r, g, b); };
+            const cands = palette.filter(c => c.id !== bg.id && c.hex !== text.main);
+            if (!cands.length) return mixHex(bg.hex, text.main, 0.15);
+            return cands.reduce((best, c) => (chroma(c.hex) > chroma(best.hex) ? c : best)).hex;
+        }
+        function getPanelColor() {
+            return panelColorFor(state.palette, getBgColor());
+        }
+        // テーマの配色から色や思い出を変えたかどうか（置きかえ前の確認に使う）
+        function paletteIsEdited() {
+            const p = themeById(state.themeId).palettes[state.paletteIndex];
+            if (!p || p.colors.length !== state.palette.length) return true;
+            return state.palette.some((c, i) => c.hex !== normalizeHex(p.colors[i].hex) || c.name !== p.colors[i].name || c.memory.trim());
+        }
+
+        // ===== 図形 =====
+        function makeDefaultShapes() {
+            const cands = shapeColorCandidates();
+            const pick = i => cands[(i + 1) % cands.length];
+            return [
+                { type: 'double-circle', size: 1.1,  x: -20, y: 20 },
+                { type: 'arch',          size: 0.95, x: 50,  y: -50 },
+                { type: 'rect',          size: 0.7,  x: -80, y: -70 },
+                { type: 'triangle',      size: 0.8,  x: 70,  y: 80 }
+            ].map((s, i) => ({ id: uid('s'), rotation: 0, colorId: pick(i).id, hex: pick(i).hex, ...s }));
+        }
+        function selectedShape() {
+            return state.shapes.find(s => s.id === state.selectedId) || null;
+        }
+        // 図形をならべる中心は、文字の置き方によって変わる
+        // （「色の面」の高さは文字の量で変わるので、最後に描いたときの値を使う）
+        let boldPanel = { x: 48, y: 48, w: W - 96, h: 700 };
+        function getLayout() {
+            const layout = state.style.layout;
+            let centerX = W / 2, centerY = H / 2 - 80;
+            if (layout === 'vertical') { centerX = 335; centerY = 480; }
+            else if (layout === 'centered') { centerY = 450; }
+            else if (layout === 'bold') { centerX = boldPanel.x + boldPanel.w / 2; centerY = boldPanel.y + boldPanel.h / 2; }
+            return { centerX, centerY, baseSize: BASE_SIZE * state.scale };
+        }
+        function shapeGeometry(shape) {
+            const { centerX, centerY, baseSize } = getLayout();
+            return {
+                cx: centerX + shape.x * state.scale,
+                cy: centerY + shape.y * state.scale,
+                r: baseSize * shape.size,
+                rot: (shape.rotation || 0) * Math.PI / 180
+            };
+        }
+
+        // 図形の輪郭（原点中心）。描画とクリック判定の両方で使う
+        function shapePath(type, r) {
+            const p = new Path2D();
+            if (type === 'circle') {
+                p.arc(0, 0, r, 0, Math.PI * 2);
+            } else if (type === 'double-circle') {
+                p.arc(0, 0, r * 1.07, 0, Math.PI * 2); // 外側の輪の太さぶんを含める
+            } else if (type === 'half') {
+                p.arc(0, r * 0.3, r, Math.PI, 0, false);
+                p.closePath();
+            } else if (type === 'rect') {
+                const side = r * 1.4;
+                p.rect(-side / 2, -side / 2, side, side);
+            } else if (type === 'band') {
+                p.rect(-r * 1.2, -r * 0.22, r * 2.4, r * 0.44);
+            } else if (type === 'triangle') {
+                for (let i = 0; i < 3; i++) {
+                    const a = (i * 120 - 90) * Math.PI / 180;
+                    if (i === 0) p.moveTo(r * Math.cos(a), r * Math.sin(a));
+                    else p.lineTo(r * Math.cos(a), r * Math.sin(a));
+                }
+                p.closePath();
+            } else if (type === 'arch') {
+                const w = r * 1.2, h = r * 1.7;
+                p.arc(0, -h / 4, w / 2, Math.PI, 0, false);
+                p.lineTo(w / 2, h / 2);
+                p.lineTo(-w / 2, h / 2);
+                p.closePath();
+            } else if (type === 'wave') {
+                p.ellipse(0, 0, r * 1.3, r * 0.65, 0, 0, Math.PI * 2);
+            } else if (type === 'ring') {
+                // 外側の円と、逆回りの内側の円で穴をあける
+                p.arc(0, 0, r, 0, Math.PI * 2);
+                p.moveTo(r * 0.62, 0);
+                p.arc(0, 0, r * 0.62, 0, Math.PI * 2, true);
+            } else if (type === 'quarter') {
+                const a = r * 0.7;
+                p.moveTo(-a, a);
+                p.lineTo(-a, -a);
+                p.arc(-a, a, a * 2, -Math.PI / 2, 0, false);
+                p.closePath();
+            } else if (type === 'line') {
+                p.rect(-r * 1.2, -r * 0.04, r * 2.4, r * 0.08);
+            } else if (type === 'leaf') {
+                p.moveTo(0, -r);
+                p.quadraticCurveTo(r * 0.75, 0, 0, r);
+                p.quadraticCurveTo(-r * 0.75, 0, 0, -r);
+                p.closePath();
+            } else if (type === 'star') {
+                for (let i = 0; i < 10; i++) {
+                    const rr = i % 2 === 0 ? r : r * 0.42;
+                    const a = (i * 36 - 90) * Math.PI / 180;
+                    if (i === 0) p.moveTo(rr * Math.cos(a), rr * Math.sin(a));
+                    else p.lineTo(rr * Math.cos(a), rr * Math.sin(a));
+                }
+                p.closePath();
+            }
+            return p;
+        }
+
+        // 前面（後に描いた図形）から順に判定し、最初に当たった図形を返す
+        function hitTestShape(px, py) {
+            hitCtx.lineWidth = 24; // 指でも選びやすいよう輪郭の外側にも少し余裕を持たせる
+            for (let i = state.shapes.length - 1; i >= 0; i--) {
+                const s = state.shapes[i];
+                const g = shapeGeometry(s);
+                const path = shapePath(s.type, g.r);
+                hitCtx.setTransform(1, 0, 0, 1, 0, 0);
+                hitCtx.translate(g.cx, g.cy);
+                hitCtx.rotate(g.rot);
+                if (hitCtx.isPointInPath(path, px, py) || hitCtx.isPointInStroke(path, px, py)) return s;
+            }
+            return null;
+        }
+
+        // 大きさを変えるつまみ（図形の右下）
+        function cssToDesign() {
+            const w = canvas.getBoundingClientRect().width;
+            return w > 0 ? W / w : 1;
+        }
+        function knobPosition(shape) {
+            const g = shapeGeometry(shape);
+            const d = g.r * shapeTypeInfo(shape.type).extent * 0.75;
+            const m = 18 * cssToDesign();
+            return {
+                x: Math.min(W - m, Math.max(m, g.cx + d)),
+                y: Math.min(H - m, Math.max(m, g.cy + d))
+            };
+        }
+        // 回すつまみ（図形の真上）
+        function rotateHandlePosition(shape) {
+            const g = shapeGeometry(shape);
+            const d = g.r * shapeTypeInfo(shape.type).extent + 34 * cssToDesign();
+            const m = 18 * cssToDesign();
+            return {
+                x: Math.min(W - m, Math.max(m, g.cx)),
+                y: Math.min(H - m, Math.max(m, g.cy - d))
+            };
+        }
+        function sizeFromKnob(shape, px, py) {
+            const g = shapeGeometry(shape);
+            const per = getLayout().baseSize * shapeTypeInfo(shape.type).extent * 0.75 * Math.SQRT2;
+            return Math.min(2.6, Math.max(0.15, Math.hypot(px - g.cx, py - g.cy) / per));
+        }
+
+        // ===== 履歴（ひとつ戻す） =====
+        const history = [];
+        function serializeWork() {
+            return {
+                themeId: state.themeId,
+                paletteIndex: state.paletteIndex,
+                palette: state.palette.map(c => ({ ...c })),
+                bgId: state.bgId,
+                author: state.author,
+                scale: state.scale,
+                showGuide: state.showGuide,
+                title: state.title,
+                message: state.message,
+                showSwatches: state.showSwatches,
+                style: { ...state.style },
+                shapes: state.shapes.map(s => ({ ...s }))
+            };
+        }
+        function applyWork(w) {
+            state.themeId = w.themeId || DEFAULT_THEME_ID;
+            state.paletteIndex = w.paletteIndex || 0;
+            state.palette = w.palette.map(c => ({ ...c }));
+            state.bgId = w.bgId;
+            state.author = w.author || '';
+            state.scale = w.scale;
+            state.showGuide = w.showGuide;
+            state.title = w.title;
+            state.message = w.message || '';
+            state.showSwatches = w.showSwatches !== false;
+            state.style = normalizeStyle(w.style);
+            state.shapes = w.shapes.map(s => ({ ...s }));
+            if (!selectedShape()) state.selectedId = null;
+        }
+        function commit() {
+            const snap = JSON.stringify(serializeWork());
+            if (history[history.length - 1] !== snap) {
+                history.push(snap);
+                if (history.length > 80) history.shift();
+            }
+            $('btn-undo').disabled = history.length < 2;
+            onWorkChanged();
+        }
+        function undo() {
+            if (history.length < 2) return;
+            history.pop();
+            applyWork(JSON.parse(history[history.length - 1]));
+            $('btn-undo').disabled = history.length < 2;
+            renderAll();
+            onWorkChanged();
+            showToast('ひとつ前にもどしました');
+        }
+        // ===== 保存と引き継ぎ =====
+        // localStorage に { currentId, works: { id: { id, createdAt, updatedAt, thumb, data } } } として保存する
+        const STORAGE_KEY = 'hotel-gallery-edition:works:v1';
+        const FILE_APP = 'hotel-gallery-edition';
+        const FILE_VERSION = 1;
+        let store = { currentId: null, works: {} };
+        let currentWorkId = null;
+        let saveTimer = null;
+
+        function readStore() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return { currentId: null, works: {} };
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object' || typeof parsed.works !== 'object') return { currentId: null, works: {} };
+                return { currentId: parsed.currentId || null, works: parsed.works || {} };
+            } catch (e) {
+                return { currentId: null, works: {} };
+            }
+        }
+        function writeStore() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // 外から来たデータ（保存データ・ファイル）を安全な形にそろえる
+        const clampNum = (v, min, max, def) => (Number.isFinite(+v) ? Math.min(max, Math.max(min, +v)) : def);
+        const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
+        function normalizeWork(raw) {
+            if (!raw || typeof raw !== 'object') throw new Error('作品のデータではありません');
+            let palette = Array.isArray(raw.palette) ? raw.palette.slice(0, MAX_COLORS).map(c => ({
+                id: typeof c.id === 'string' && c.id ? c.id : uid('c'),
+                hex: normalizeHex(c.hex),
+                name: str(c.name, 24),
+                memory: str(c.memory, 40)
+            })) : [];
+            // id の重複を避ける
+            const seen = new Set();
+            palette.forEach(c => { if (seen.has(c.id)) c.id = uid('c'); seen.add(c.id); });
+            if (palette.length < MIN_COLORS) palette = paletteFromPreset(THEMES[0].palettes[0]);
+            const typeIds = SHAPE_TYPES.map(t => t.id);
+            const shapes = Array.isArray(raw.shapes) ? raw.shapes.slice(0, 60).filter(s => s && typeIds.includes(s.type)).map(s => ({
+                id: typeof s.id === 'string' && s.id ? s.id : uid('s'),
+                type: s.type,
+                x: clampNum(s.x, -1000, 1000, 0),
+                y: clampNum(s.y, -1000, 1000, 0),
+                size: clampNum(s.size, 0.15, 2.6, 0.6),
+                rotation: clampNum(s.rotation, -180, 180, 0),
+                colorId: typeof s.colorId === 'string' ? s.colorId : null,
+                hex: normalizeHex(s.hex)
+            })) : [];
+            // 以前の形式（雰囲気 mood とたたき台の番号）も、近いテーマに読みかえる
+            const themeId = THEMES.some(t => t.id === raw.themeId) ? raw.themeId : (OLD_MOOD_TO_THEME[raw.mood] || DEFAULT_THEME_ID);
+            const rawIndex = raw.paletteIndex !== undefined ? raw.paletteIndex : raw.presetIndex;
+            return {
+                themeId,
+                paletteIndex: clampNum(Math.floor(rawIndex), 0, themeById(themeId).palettes.length - 1, 0),
+                palette,
+                bgId: palette.some(c => c.id === raw.bgId) ? raw.bgId : null,
+                // 以前の形式（二人分の名前）のデータも読めるようにする
+                author: str(typeof raw.author === 'string' ? raw.author : (raw.names && (raw.names.elder || raw.names.young)), 20),
+                scale: clampNum(raw.scale, 0.5, 1.6, 1),
+                showGuide: !!raw.showGuide,
+                title: str(raw.title, 40),
+                message: str(raw.message, 90),
+                // 色見本を出すかどうか（以前の「色の名前をのせる」設定とは別のもの）
+                showSwatches: raw.showSwatches !== false,
+                style: normalizeStyle(raw.style),
+                shapes
+            };
+        }
+
+        function makeThumb() {
+            try {
+                return renderPosterCanvas(0.2).toDataURL('image/jpeg', 0.7);
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function saveNow() {
+            clearTimeout(saveTimer);
+            saveTimer = null;
+            if (!currentWorkId) return;
+            const now = new Date().toISOString();
+            const prev = store.works[currentWorkId] || { id: currentWorkId, createdAt: now };
+            store.works[currentWorkId] = { ...prev, updatedAt: now, thumb: makeThumb(), data: serializeWork() };
+            store.currentId = currentWorkId;
+            if (writeStore()) {
+                const t = new Date();
+                $('save-status').innerHTML = `<i class="fa-solid fa-check text-amber-200"></i> 自動で保存しました（${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}）`;
+            } else {
+                $('save-status').innerHTML = '<i class="fa-solid fa-triangle-exclamation text-rose-300"></i> この端末に保存できませんでした';
+                showToast('この端末に保存できませんでした。「ファイルに書き出す」で保存してください');
+            }
+        }
+
+        // 作品が変わったら、少し待ってから自動で保存する
+        function onWorkChanged() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(saveNow, 700);
+        }
+        window.addEventListener('pagehide', () => { if (saveTimer) saveNow(); });
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && saveTimer) saveNow(); });
+
+        function resetHistory() {
+            history.length = 0;
+            commit();
+        }
+
+        function openWork(id) {
+            const w = store.works[id];
+            if (!w) return;
+            if (saveTimer) saveNow();
+            try {
+                applyWork(normalizeWork(w.data));
+            } catch (e) {
+                showToast('この作品は開けませんでした');
+                return;
+            }
+            currentWorkId = id;
+            store.currentId = id;
+            writeStore();
+            state.selectedId = null;
+            renderAll();
+            resetHistory();
+        }
+
+        // 新しい作品：いまのテーマから案をひとつつくる（お名前はそのまま引きつぐ）
+        function defaultWorkData() {
+            const theme = themeById(state.themeId);
+            const work = generateWork(theme, seededRandom(Math.floor(Math.random() * 2147483647)));
+            work.title = theme.titles[0];
+            work.message = '';
+            return work;
+        }
+        function createWork(data, { open = true } = {}) {
+            const id = uid('w');
+            const now = new Date().toISOString();
+            store.works[id] = { id, createdAt: now, updatedAt: now, thumb: '', data };
+            if (open) {
+                if (saveTimer) saveNow();
+                currentWorkId = id;
+                applyWork(normalizeWork(data));
+                state.selectedId = null;
+                renderAll();
+                resetHistory();
+                saveNow();
+            } else {
+                writeStore();
+            }
+            return id;
+        }
+
+        function formatDate(iso) {
+            const d = new Date(iso);
+            if (isNaN(d)) return '';
+            return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+
+        function renderWorksList() {
+            const list = $('works-list');
+            const works = Object.values(store.works).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+            if (!works.length) {
+                list.innerHTML = '<p class="help">まだ保存された作品はありません。</p>';
+                return;
+            }
+            list.innerHTML = works.map(w => {
+                const d = w.data || {};
+                const names = escapeHtml(d.author || (d.names && (d.names.elder || d.names.young)) || '');
+                const current = w.id === currentWorkId;
+                return `
+                <div class="work-item flex gap-3 sm:gap-4 items-center p-3 rounded-xl border-2 ${current ? 'border-amber-200/80 bg-stone-800/70' : 'border-stone-700 bg-stone-950/50'}" data-id="${escapeHtml(w.id)}">
+                    ${w.thumb ? `<img src="${w.thumb}" alt="" class="w-16 h-[90px] sm:w-20 sm:h-[113px] object-cover rounded border border-stone-600 flex-shrink-0">` : '<div class="w-16 h-[90px] sm:w-20 sm:h-[113px] rounded border border-stone-600 bg-stone-800 flex-shrink-0"></div>'}
+                    <div class="flex-1 min-w-0">
+                        <p class="font-mincho font-semibold text-lg text-stone-50 truncate">${escapeHtml(d.title) || '<span class="text-stone-400">（タイトルなし）</span>'}</p>
+                        ${names ? `<p class="text-base text-stone-200 truncate">${names}</p>` : ''}
+                        <p class="text-sm text-stone-300">${formatDate(w.updatedAt)}${current ? '　<span class="text-amber-200 font-bold">いま開いている作品</span>' : ''}</p>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            ${current ? '' : '<button type="button" class="btn btn-sm btn-primary work-open"><i class="fa-regular fa-folder-open"></i>ひらく</button>'}
+                            <button type="button" class="btn btn-sm work-dup"><i class="fa-regular fa-clone"></i>複製</button>
+                            <button type="button" class="btn btn-sm btn-danger work-del"><i class="fa-solid fa-trash-can"></i>消す</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            list.querySelectorAll('.work-item').forEach(item => {
+                const id = item.dataset.id;
+                const w = store.works[id];
+                const openBtn = item.querySelector('.work-open');
+                if (openBtn) openBtn.addEventListener('click', () => {
+                    openWork(id);
+                    $('works-dialog').close();
+                    showToast(w.data && w.data.title ? `「${w.data.title}」を開きました` : '作品を開きました');
+                });
+                item.querySelector('.work-dup').addEventListener('click', () => {
+                    if (id === currentWorkId) saveNow();
+                    const copy = JSON.parse(JSON.stringify(store.works[id].data));
+                    copy.title = copy.title ? `${copy.title}（複製）`.slice(0, 40) : '';
+                    const newId = createWork(copy, { open: false });
+                    store.works[newId].thumb = store.works[id].thumb;
+                    writeStore();
+                    renderWorksList();
+                    showToast('作品を複製しました');
+                });
+                item.querySelector('.work-del').addEventListener('click', () => {
+                    const title = (w.data && w.data.title) || 'タイトルなしの作品';
+                    if (!confirm(`「${title}」を消しますか？　消すと元にもどせません。`)) return;
+                    delete store.works[id];
+                    if (id === currentWorkId) {
+                        const rest = Object.values(store.works).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+                        if (rest.length) openWork(rest[0].id);
+                        else createWork(defaultWorkData());
+                    }
+                    writeStore();
+                    renderWorksList();
+                    showToast('作品を消しました');
+                });
+            });
+        }
+
+        // ===== ファイルへの書き出し・読み込み（JSON） =====
+        function downloadJson(obj, filename) {
+            const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+        }
+        function todayStamp() {
+            const d = new Date();
+            return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+        }
+        function exportWorks(ids, filename) {
+            saveNow();
+            const works = ids.map(id => store.works[id]).filter(Boolean).map(w => ({
+                id: w.id, createdAt: w.createdAt, updatedAt: w.updatedAt, data: w.data
+            }));
+            downloadJson({ app: FILE_APP, version: FILE_VERSION, exportedAt: new Date().toISOString(), works }, filename);
+            showToast(works.length > 1 ? `${works.length}作品をファイルに書き出しました` : 'ファイルに書き出しました');
+        }
+
+        function importFromText(text) {
+            let parsed;
+            try {
+                parsed = JSON.parse(text);
+            } catch (e) {
+                throw new Error('ファイルを読みとれませんでした（JSON ではありません）');
+            }
+            let list;
+            if (parsed && parsed.app === FILE_APP && Array.isArray(parsed.works)) list = parsed.works;
+            else if (parsed && parsed.palette) list = [{ data: parsed }]; // 作品データだけのファイル
+            else throw new Error('このツールで書き出したファイルではないようです');
+            const imported = [];
+            list.forEach(entry => {
+                const data = normalizeWork(entry && entry.data);
+                let id = entry && typeof entry.id === 'string' && entry.id ? entry.id : uid('w');
+                if (store.works[id]) {
+                    const overwrite = confirm(`「${data.title || 'タイトルなしの作品'}」は、この端末にもう保存されています。\n\nOK：ファイルの内容で上書きする\nキャンセル：別の作品として読み込む`);
+                    if (!overwrite) id = uid('w');
+                }
+                const now = new Date().toISOString();
+                store.works[id] = {
+                    id,
+                    createdAt: (entry && entry.createdAt) || now,
+                    updatedAt: (entry && entry.updatedAt) || now,
+                    thumb: '',
+                    data
+                };
+                imported.push(id);
+            });
+            if (!imported.length) throw new Error('ファイルに作品が入っていませんでした');
+            writeStore();
+            // 読み込んだ作品のうち最初のものを開き、サムネイルも作る
+            openWork(imported[0]);
+            saveNow();
+            return imported.length;
+        }
+
+        function bindWorksEvents() {
+            const dialog = $('works-dialog');
+            $('btn-works').addEventListener('click', () => {
+                saveNow();
+                renderWorksList();
+                if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', '');
+            });
+            $('btn-close-works').addEventListener('click', () => dialog.close());
+            dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
+            $('btn-new-work').addEventListener('click', () => {
+                createWork(defaultWorkData());
+                dialog.close();
+                showToast('新しい作品をはじめました。前の作品は一覧に保存されています');
+            });
+            $('btn-export-current').addEventListener('click', () => {
+                exportWorks([currentWorkId], `hotel-gallery_${fileSafe(state.title)}_${todayStamp()}.json`);
+            });
+            $('btn-export-all').addEventListener('click', () => {
+                exportWorks(Object.keys(store.works), `hotel-gallery_all_${todayStamp()}.json`);
+            });
+            $('btn-import').addEventListener('click', () => $('import-file').click());
+            $('import-file').addEventListener('change', e => {
+                const file = e.target.files && e.target.files[0];
+                e.target.value = '';
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try {
+                        const count = importFromText(String(reader.result));
+                        renderWorksList();
+                        dialog.close();
+                        showToast(count > 1 ? `${count}作品を読み込みました` : (state.title ? `「${state.title}」を読み込みました` : '作品を読み込みました'));
+                    } catch (err) {
+                        showToast(err.message || '読み込めませんでした');
+                    }
+                };
+                reader.onerror = () => showToast('ファイルを読みとれませんでした');
+                reader.readAsText(file);
+            });
+        }
+
+        // 起動時：前回開いていた作品を開く。なければ新しい作品をつくる
+        function restoreOnStartup() {
+            store = readStore();
+            const id = store.currentId && store.works[store.currentId] ? store.currentId
+                : (Object.values(store.works).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))[0] || {}).id;
+            if (id) {
+                try {
+                    applyWork(normalizeWork(store.works[id].data));
+                    currentWorkId = id;
+                    return;
+                } catch (e) { /* 壊れていれば新しい作品にする */ }
+            }
+            currentWorkId = uid('w');
+            const now = new Date().toISOString();
+            store.works[currentWorkId] = { id: currentWorkId, createdAt: now, updatedAt: now, thumb: '', data: serializeWork() };
+        }
+
+        // ===== フォント =====
+        // ポスター用フォントの読み込みを待つ（オフライン等で読めない場合も数秒で描画に進む）
+        function waitForFonts() {
+            if (!document.fonts || !document.fonts.load) return Promise.resolve();
+            const loads = [
+                document.fonts.load('600 44px "Cinzel"'),
+                document.fonts.load('400 13px "Montserrat"'),
+                document.fonts.load('500 11px "Montserrat"'),
+                document.fonts.load('600 44px "Shippori Mincho"', 'あ漢'),
+                document.fonts.load('400 16px "Shippori Mincho"', 'あ漢'),
+                document.fonts.load('500 15px "Shippori Mincho"', 'あ漢'),
+                document.fonts.load('700 40px "Zen Maru Gothic"', 'あ漢'),
+                document.fonts.load('500 16px "Zen Maru Gothic"', 'あ漢'),
+                document.fonts.load('700 40px "BIZ UDPGothic"', 'あ漢')
+            ];
+            const timeout = new Promise(resolve => setTimeout(resolve, 3000));
+            return Promise.race([Promise.all(loads).then(() => document.fonts.ready), timeout]).catch(() => {});
+        }
+
+        let drawQueued = false;
+        function requestDraw() {
+            if (drawQueued) return;
+            drawQueued = true;
+            requestAnimationFrame(() => { drawQueued = false; drawPoster(); });
+        }
+
+        function renderAll() {
+            renderAuthor();
+            renderThemeList();
+            renderPresetList();
+            renderStyleOptions();
+            renderPaletteList();
+            renderShapeAdd();
+            renderShapeList();
+            renderPosterFields();
+            requestDraw();
+        }
+
+        async function init() {
+            state.shapes = makeDefaultShapes();
+            restoreOnStartup(); // 前回の作品があれば開く
+            bindEvents();
+            bindWorksEvents();
+            bindPhotoTool();
+            bindPrint();
+            bindShapeToolbar();
+            renderAll();
+            await waitForFonts();
+            drawPoster();
+            commit(); // 最初の状態を履歴に入れ、保存する
+            makeProposals(); // いまのテーマの案を3つ用意しておく
+            // 後から読み込まれた字形（日本語の追加サブセット等）があれば描き直す
+            if (document.fonts) document.fonts.addEventListener('loadingdone', requestDraw);
+            // 画面の幅が変わるとつまみの大きさも変わるので描き直す
+            window.addEventListener('resize', requestDraw);
+        }
+
+        // ===== 03 ことば：お名前 =====
+        function renderAuthor() {
+            $('author-name').value = state.author;
+        }
+
+        // ===== 案の自動生成 =====
+        // 文字の置き方ごとに、図形をならべてよい範囲（中心からの半分の幅・高さ）
+        const ART_BOX = {
+            gallery:  { hw: 280, hh: 240 },
+            vertical: { hw: 215, hh: 260 },
+            centered: { hw: 270, hh: 230 },
+            bold:     { hw: 320, hh: 280 }
+        };
+        const pickFrom = (rnd, arr) => arr[Math.floor(rnd() * arr.length)];
+        const between = (rnd, a, b) => a + (b - a) * rnd();
+        // テーマの図形のうち、構図に向いたものだけを使う（なければテーマの図形すべて）
+        const prefer = (types, wanted) => { const t = types.filter(x => wanted.includes(x)); return t.length ? t : types; };
+
+        // 構図：図形の種類・位置・大きさ（px）・向きを決める
+        const COMPOSERS = {
+            // 重ねる：大小の図形を中央に重ねる
+            cluster(rnd, box, types) {
+                const m = Math.min(box.hw, box.hh);
+                const n = 3 + Math.floor(rnd() * 3);
+                const scales = [0.78, 0.62, 0.5, 0.42, 0.34];
+                return Array.from({ length: n }, (_, i) => ({
+                    type: pickFrom(rnd, types),
+                    x: between(rnd, -0.38, 0.38) * box.hw,
+                    y: between(rnd, -0.3, 0.3) * box.hh,
+                    R: m * scales[i] * between(rnd, 0.85, 1.1),
+                    rot: pickFrom(rnd, [0, 0, 0, 15, -15, 45, 90])
+                }));
+            },
+            // 積む：下から上へ、トーテムのように積む
+            stack(rnd, box, types) {
+                const t = prefer(types, ['arch', 'circle', 'half', 'rect', 'triangle', 'quarter', 'double-circle']);
+                const n = 3 + Math.floor(rnd() * 2);
+                const unit = (box.hh * 2 * 0.9) / n;
+                const out = [];
+                if (types.includes('line')) out.push({ type: 'line', x: 0, y: box.hh * 0.92, R: box.hw * 0.8, rot: 0 });
+                for (let i = 0; i < n; i++) {
+                    const type = pickFrom(rnd, t);
+                    out.push({
+                        type,
+                        x: between(rnd, -0.12, 0.12) * box.hw,
+                        y: box.hh * 0.9 - unit * (i + 0.5),
+                        R: unit * 0.55 * between(rnd, 0.9, 1.2),
+                        rot: type === 'quarter' ? pickFrom(rnd, [0, 90, 180, 270]) : 0
+                    });
+                }
+                return out;
+            },
+            // めぐる：大きな輪のまわりを小さな丸や星がめぐる
+            orbit(rnd, box, types) {
+                const m = Math.min(box.hw, box.hh);
+                const R0 = m * 0.7;
+                const main = pickFrom(rnd, prefer(types, ['ring', 'double-circle', 'circle']));
+                const out = [{ type: main, x: 0, y: 0, R: R0, rot: 0 }];
+                if (types.includes('line') && rnd() < 0.6) out.unshift({ type: 'line', x: 0, y: 0, R: m * 0.95, rot: pickFrom(rnd, [0, 90, -30]) });
+                if (main !== 'double-circle') out.push({ type: 'circle', x: between(rnd, -0.1, 0.1) * R0, y: between(rnd, -0.1, 0.1) * R0, R: R0 * 0.36, rot: 0 });
+                const sat = prefer(types, ['circle', 'star']);
+                const k = 3 + Math.floor(rnd() * 4);
+                for (let i = 0; i < k; i++) {
+                    const a = rnd() * Math.PI * 2, d = R0 * between(rnd, 1.12, 1.32);
+                    out.push({
+                        type: pickFrom(rnd, sat),
+                        x: Math.max(-box.hw, Math.min(box.hw, Math.cos(a) * d)),
+                        y: Math.max(-box.hh, Math.min(box.hh, Math.sin(a) * d)),
+                        R: between(rnd, 12, 30), rot: rnd() * 72
+                    });
+                }
+                return out;
+            },
+            // 散らす：ひとつの大きな形と、たくさんの小さな形
+            scatter(rnd, box, types) {
+                const m = Math.min(box.hw, box.hh);
+                const small = types.filter(t => !['band', 'line', 'arch'].includes(t));
+                const out = [{
+                    type: pickFrom(rnd, types),
+                    x: between(rnd, -0.3, 0.3) * box.hw, y: between(rnd, -0.3, 0.3) * box.hh,
+                    R: m * between(rnd, 0.4, 0.55), rot: pickFrom(rnd, [0, 0, 30, -30])
+                }];
+                const k = 14 + Math.floor(rnd() * 9);
+                for (let i = 0; i < k; i++) {
+                    out.push({
+                        type: pickFrom(rnd, small.length ? small : types),
+                        x: between(rnd, -1, 1) * box.hw, y: between(rnd, -1, 1) * box.hh,
+                        R: between(rnd, 12, 34) * (m / 250), rot: rnd() * 360
+                    });
+                }
+                return out;
+            },
+            // ならべる：ます目に形をならべる
+            grid(rnd, box, types) {
+                const t = prefer(types, ['rect', 'circle', 'half', 'quarter', 'triangle']);
+                const n = pickFrom(rnd, [3, 3, 4]);
+                const side = Math.min(box.hw, box.hh) * 2 * 0.92;
+                const cell = side / n;
+                const out = [];
+                const place = (type, cx, cy, rot) => {
+                    let R = cell * 0.46, dy0 = 0;
+                    if (type === 'rect' || type === 'quarter') R = (cell * 0.47) / 0.7;
+                    else if (type === 'half') dy0 = 0.2 * R;
+                    else if (type === 'triangle') { R = cell * 0.5; dy0 = 0.25 * R; }
+                    // 形の見た目の中心をます目の中心にそろえる
+                    const a = rot * Math.PI / 180;
+                    out.push({ type, x: cx - dy0 * Math.sin(a), y: cy + dy0 * Math.cos(a), R, rot });
+                };
+                for (let r = 0; r < n; r++) {
+                    for (let c = 0; c < n; c++) {
+                        if (rnd() < 0.12) continue;
+                        const cx = -side / 2 + cell * (c + 0.5), cy = -side / 2 + cell * (r + 0.5);
+                        if (types.includes('rect') && rnd() < 0.35) {
+                            place('rect', cx, cy, 0);
+                            out.push({ type: pickFrom(rnd, prefer(types, ['circle', 'quarter', 'half'])), x: cx, y: cy, R: cell * 0.32, rot: pickFrom(rnd, [0, 90, 180, 270]) });
+                        } else {
+                            const type = pickFrom(rnd, t);
+                            place(type, cx, cy, type === 'triangle' ? pickFrom(rnd, [0, 180]) : pickFrom(rnd, [0, 90, 180, 270]));
+                        }
+                    }
+                }
+                return out;
+            },
+            // 風景：太陽と、海（帯）または山なみ（半円）
+            landscape(rnd, box, types) {
+                const m = Math.min(box.hw, box.hh);
+                const out = [{
+                    type: pickFrom(rnd, prefer(types, ['circle', 'double-circle'])),
+                    x: between(rnd, -0.45, 0.45) * box.hw, y: -box.hh * between(rnd, 0.35, 0.55),
+                    R: m * between(rnd, 0.2, 0.3), rot: 0
+                }];
+                const sea = types.includes('band') && (!types.includes('half') || rnd() < 0.5);
+                if (sea) {
+                    if (types.includes('line')) out.push({ type: 'line', x: 0, y: box.hh * 0.02, R: box.hw * 0.95, rot: 0 });
+                    const k = 3 + Math.floor(rnd() * 2);
+                    for (let i = 0; i < k; i++) {
+                        out.push({ type: 'band', x: between(rnd, -0.08, 0.08) * box.hw, y: box.hh * (0.18 + i * 0.22), R: (box.hw * 2.2) / 2.4, rot: 0 });
+                    }
+                } else {
+                    if (types.includes('triangle') && rnd() < 0.6) {
+                        out.push({ type: 'triangle', x: between(rnd, -0.5, 0.5) * box.hw, y: -box.hh * 0.05, R: box.hw * 0.45, rot: 0 });
+                    }
+                    const k = 2 + Math.floor(rnd() * 2);
+                    const hills = Array.from({ length: k }, () => {
+                        const R = box.hw * between(rnd, 0.7, 1.05);
+                        const top = between(rnd, -0.05, 0.4) * box.hh;
+                        return { type: 'half', x: between(rnd, -0.5, 0.5) * box.hw, y: top + 0.7 * R, R, rot: 0, top };
+                    }).sort((a, b) => a.top - b.top); // 遠い（高い）山から描く
+                    hills.forEach(h => { delete h.top; out.push(h); });
+                }
+                return out;
+            },
+            // ななめ：ななめの帯と、アクセントの形
+            diagonal(rnd, box, types) {
+                const m = Math.min(box.hw, box.hh);
+                const ang = pickFrom(rnd, [-45, -30, 30, 45, -60]);
+                const R = (Math.hypot(box.hw, box.hh) / 1.2) * 0.75;
+                const k = 3 + Math.floor(rnd() * 2);
+                const s = 0.5 * R;
+                const nx = Math.cos((ang + 90) * Math.PI / 180), ny = Math.sin((ang + 90) * Math.PI / 180);
+                const out = [];
+                for (let i = 0; i < k; i++) {
+                    const t = (i - (k - 1) / 2) * s;
+                    out.push({ type: types.includes('band') ? (i % 2 && types.includes('line') ? 'line' : 'band') : 'rect', x: t * nx, y: t * ny, R: types.includes('band') ? R : R * 0.4, rot: ang });
+                }
+                const acc = prefer(types, ['circle', 'quarter', 'half', 'leaf']);
+                const a = 1 + Math.floor(rnd() * 2);
+                for (let i = 0; i < a; i++) {
+                    out.push({ type: pickFrom(rnd, acc), x: between(rnd, -0.6, 0.6) * box.hw, y: between(rnd, -0.6, 0.6) * box.hh, R: m * between(rnd, 0.18, 0.3), rot: pickFrom(rnd, [0, 90, 180, 270]) });
+                }
+                return out;
+            }
+        };
+
+        function paletteFromTheme(theme, index) {
+            const p = theme.palettes[index] || theme.palettes[0];
+            const palette = paletteFromPreset(p);
+            const bgId = (palette[p.bg] || palette[palette.length - 1]).id;
+            return { palette, bgId };
+        }
+
+        // 利用者が自分で入れたタイトルは残す（はじめのまま・テーマの例のときだけ入れかえる）
+        // 空にしたときも「タイトルなし」として残す
+        function isAutoTitle(title) {
+            const t = String(title || '').trim();
+            return t === 'わたしのギャラリー' || THEMES.some(th => th.titles.includes(t));
+        }
+
+        // 構図の説明（「組み合わせの見本」に出す）。shapes はその構図が引き立つ図形
+        const COMPOSITION_INFO = [
+            { id: 'cluster',   name: '重ねる',   desc: '大小の形を中央に重ねます。ホテルに飾るような抽象画に。', shapes: ['circle', 'double-circle', 'arch', 'rect', 'triangle', 'half'] },
+            { id: 'stack',     name: '積む',     desc: '形を下から上へ積み上げます。塔や建物のように。', shapes: ['arch', 'circle', 'half', 'rect', 'triangle', 'quarter'] },
+            { id: 'orbit',     name: 'めぐる',   desc: '大きな輪のまわりを小さな形がめぐります。月や星、水の波紋のように。', shapes: ['ring', 'double-circle', 'circle', 'star', 'line'] },
+            { id: 'scatter',   name: '散らす',   desc: '小さな形をちりばめます。花びらや雪、星空のように。', shapes: ['circle', 'leaf', 'star', 'triangle', 'quarter'] },
+            { id: 'grid',      name: 'ならべる', desc: 'ます目に形をならべます。タイルや模様のように。', shapes: ['rect', 'circle', 'half', 'quarter', 'triangle'] },
+            { id: 'landscape', name: '風景',     desc: '太陽と、山なみや海。ふるさとの景色のように。', shapes: ['circle', 'half', 'band', 'line', 'triangle'] },
+            { id: 'diagonal',  name: 'ななめ',   desc: 'ななめの帯と形。着物の柄やモダンアートのように。', shapes: ['band', 'line', 'circle', 'quarter', 'half'] }
+        ];
+
+        // テーマから案をひとつつくる（force.composition を渡すと、その構図でつくる）
+        function generateWork(theme, rnd, avoid = [], force = {}) {
+            let choice = null;
+            // ほかの案と配置・構図・配色がなるべく重ならないよう、数回ためして選ぶ
+            for (let attempt = 0; attempt < 8; attempt++) {
+                const c = {
+                    paletteIndex: Math.floor(rnd() * theme.palettes.length),
+                    layout: pickFrom(rnd, theme.layouts),
+                    composition: force.composition || pickFrom(rnd, theme.compositions)
+                };
+                const sig = `${c.layout}/${c.composition}/${c.paletteIndex}`;
+                choice = c;
+                if (!avoid.includes(sig)) { avoid.push(sig); break; }
+            }
+            const { palette, bgId } = paletteFromTheme(theme, choice.paletteIndex);
+            const style = normalizeStyle({
+                layout: choice.layout,
+                background: pickFrom(rnd, theme.backgrounds),
+                frame: pickFrom(rnd, theme.frames),
+                font: pickFrom(rnd, theme.fonts),
+                shapeStyle: pickFrom(rnd, theme.shapeStyles)
+            });
+            // 構図を指定したときは、テーマの図形のうちその構図に合うものを使う（少なければ構図向きの図形）
+            let types = theme.shapes;
+            if (force.composition) {
+                const info = COMPOSITION_INFO.find(c => c.id === force.composition);
+                const both = info ? info.shapes.filter(t => theme.shapes.includes(t)) : [];
+                types = both.length >= 2 ? both : (info ? info.shapes : theme.shapes);
+            }
+            const raw = COMPOSERS[choice.composition](rnd, ART_BOX[style.layout], types);
+
+            // 色：背景の色は使わない。色の面のときは面の色も使わない。となりあう図形は別の色に
+            const bg = palette.find(c => c.id === bgId);
+            let cands = palette.filter(c => c.id !== bgId);
+            if (style.layout === 'bold') {
+                const panel = panelColorFor(palette, bg);
+                const rest = cands.filter(c => c.hex !== panel);
+                if (rest.length) cands = rest;
+            }
+            let prev = null;
+            const shapes = raw.map(r => {
+                let c = pickFrom(rnd, cands);
+                if (cands.length > 1) while (c === prev) c = pickFrom(rnd, cands);
+                prev = c;
+                return {
+                    id: uid('s'), type: r.type,
+                    x: Math.round(r.x), y: Math.round(r.y),
+                    size: Math.min(2.6, Math.max(0.03, r.R / BASE_SIZE)),
+                    rotation: Math.round(((r.rot + 180) % 360 + 360) % 360 - 180),
+                    colorId: c.id, hex: c.hex
+                };
+            });
+
+            return {
+                themeId: theme.id,
+                paletteIndex: choice.paletteIndex,
+                palette, bgId,
+                author: state.author,
+                scale: 1,
+                showGuide: state.showGuide,
+                title: isAutoTitle(state.title) ? pickFrom(rnd, theme.titles) : state.title,
+                message: state.message,
+                showSwatches: state.showSwatches,
+                style,
+                shapes
+            };
+        }
+
+        // 一時的に別の作品の内容にして処理し、元にもどす（案の見本を描くときに使う）
+        function withWork(work, fn) {
+            const saved = serializeWork();
+            const sel = state.selectedId;
+            const panel = boldPanel;
+            applyWork(work);
+            try { return fn(); } finally { applyWork(saved); state.selectedId = sel; boldPanel = panel; }
+        }
+
+        // ===== 01 テーマ／02 案 =====
+        let proposals = [];
+        function renderThemeList() {
+            const list = $('theme-list');
+            list.innerHTML = THEMES.map(t => {
+                const p = t.palettes[0];
+                const on = t.id === state.themeId;
+                return `
+                <button type="button" data-theme="${t.id}" class="theme-btn text-left p-3 rounded-xl border-2 ${on ? 'border-amber-200 bg-stone-800' : 'border-stone-700 bg-stone-950/50 hover:border-stone-400'} transition-colors flex flex-col gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200" aria-pressed="${on}">
+                    <span class="flex h-7 rounded-md overflow-hidden border border-white/15">
+                        ${p.colors.map(c => `<span class="flex-1" style="background:${c.hex}"></span>`).join('')}
+                    </span>
+                    <span class="font-mincho font-semibold text-lg text-stone-50 leading-snug">${on ? '<i class="fa-solid fa-check text-amber-200 mr-1"></i>' : ''}${escapeHtml(t.name)}</span>
+                    <span class="text-sm text-stone-300 leading-snug">${escapeHtml(t.desc)}</span>
+                </button>`;
+            }).join('');
+            list.querySelectorAll('.theme-btn').forEach(btn => btn.addEventListener('click', () => {
+                state.themeId = btn.dataset.theme;
+                renderThemeList();
+                makeProposals();
+                const panel = $('proposal-panel');
+                if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }));
+        }
+
+        function makeProposals() {
+            const theme = themeById(state.themeId);
+            const rnd = seededRandom(Math.floor(Math.random() * 2147483647));
+            const avoid = [];
+            proposals = [0, 1, 2].map(() => {
+                const work = generateWork(theme, rnd, avoid);
+                const thumb = withWork(work, () => renderPosterCanvas(0.34).toDataURL('image/jpeg', 0.85));
+                return { work, thumb };
+            });
+            renderProposals();
+            makeCompositionGuide(rnd);
+            requestDraw(); // 見本を描いたあと、画面のポスターを描き直す
+        }
+
+        // 案（または見本）をポスターに当てはめる。お名前・ひとこと・自分で入れたタイトルは残す
+        function applyGeneratedWork(source, message) {
+            const work = JSON.parse(JSON.stringify(source));
+            work.author = state.author;
+            work.message = state.message;
+            if (!isAutoTitle(state.title)) work.title = state.title;
+            applyWork(work);
+            state.selectedId = null;
+            renderAll();
+            commit();
+            showToast(message, { label: 'もとにもどす', run: undo });
+            // 画面がせまくポスターが上にあるときは、ポスターの位置まで戻る
+            if (window.matchMedia('(max-width: 1023px)').matches) canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function renderProposals() {
+            const theme = themeById(state.themeId);
+            $('proposal-help').textContent = `「${theme.name}」の案です。気に入ったものを押すと、右のポスターがその案になります。`;
+            $('proposal-list').innerHTML = proposals.map((p, i) => `
+                <button type="button" data-i="${i}" class="proposal-btn group flex flex-col items-center gap-1 rounded-xl border-2 border-stone-700 hover:border-amber-200 bg-stone-950/50 p-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200" aria-label="案${i + 1}をえらぶ">
+                    <img src="${p.thumb}" alt="" class="w-full h-auto rounded">
+                    <span class="text-base font-bold text-stone-100 py-1">案${i + 1}</span>
+                </button>`).join('');
+            $('proposal-list').querySelectorAll('.proposal-btn').forEach(btn => btn.addEventListener('click', () => {
+                applyGeneratedWork(proposals[parseInt(btn.dataset.i, 10)].work, 'この案にしました。気になるところは下で直せます');
+            }));
+        }
+
+        // ===== 03 組み合わせの見本 =====
+        // 構図ごとに、いまのテーマの色で見本をつくって並べる
+        let guideItems = [];
+        function makeCompositionGuide(rnd = seededRandom(Math.floor(Math.random() * 2147483647))) {
+            const theme = themeById(state.themeId);
+            guideItems = COMPOSITION_INFO.map(info => {
+                const work = generateWork(theme, rnd, [], { composition: info.id });
+                const thumb = withWork(work, () => renderPosterCanvas(0.3).toDataURL('image/jpeg', 0.85));
+                return { info, work, thumb };
+            });
+            renderCompositionGuide();
+        }
+        function renderCompositionGuide() {
+            const list = $('guide-list');
+            list.innerHTML = guideItems.map((g, i) => `
+                <button type="button" data-i="${i}" class="guide-btn text-left flex gap-3 items-start rounded-xl border-2 border-stone-700 hover:border-amber-200 bg-stone-950/50 p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200" aria-label="「${g.info.name}」の組み合わせで作る">
+                    <img src="${g.thumb}" alt="" class="w-20 sm:w-24 h-auto rounded flex-shrink-0">
+                    <span class="flex-1 min-w-0 py-1">
+                        <span class="block font-mincho font-semibold text-lg text-stone-50">${escapeHtml(g.info.name)}</span>
+                        <span class="block text-base text-stone-200 leading-snug mt-1">${escapeHtml(g.info.desc)}</span>
+                        <span class="flex flex-wrap items-center gap-1 mt-2" aria-label="使う形">
+                            ${g.info.shapes.slice(0, 5).map(t => `<span class="inline-flex items-center justify-center w-8 h-8 rounded-md bg-stone-200/90" title="${shapeTypeInfo(t).label}">${shapeIconSvg(t, '#292524', 20)}</span>`).join('')}
+                        </span>
+                    </span>
+                </button>`).join('');
+            list.querySelectorAll('.guide-btn').forEach(btn => btn.addEventListener('click', () => {
+                const g = guideItems[parseInt(btn.dataset.i, 10)];
+                applyGeneratedWork(g.work, `「${g.info.name}」の組み合わせにしました`);
+            }));
+        }
+
+        // ===== 05 色：このテーマのほかの配色 =====
+        function renderPresetList() {
+            const theme = themeById(state.themeId);
+            const list = $('preset-list');
+            list.innerHTML = theme.palettes.map((p, i) => `
+                <button type="button" data-preset="${i}" class="preset-btn w-full text-left p-3 rounded-xl border-2 ${i === state.paletteIndex ? 'border-amber-200/70' : 'border-stone-700'} bg-stone-950/50 hover:border-stone-400 transition-colors flex flex-col gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">
+                    <span class="font-bold text-base text-stone-50">${escapeHtml(p.name)}</span>
+                    <span class="flex h-9 rounded-lg overflow-hidden border border-white/15">
+                        ${p.colors.map(c => `<span class="flex-1" style="background:${c.hex}" title="${escapeHtml(c.name)}"></span>`).join('')}
+                    </span>
+                    <span class="text-sm text-stone-300">${p.colors.map(c => escapeHtml(c.name)).join('・')}</span>
+                </button>
+            `).join('');
+            list.querySelectorAll('.preset-btn').forEach(btn => btn.addEventListener('click', () => {
+                const idx = parseInt(btn.dataset.preset, 10);
+                if (paletteIsEdited() && !confirm('いまの色（つけた名前も）を、この配色に置きかえます。よろしいですか？')) return;
+                const { palette, bgId } = paletteFromTheme(theme, idx);
+                state.paletteIndex = idx;
+                state.palette = palette;
+                state.bgId = bgId;
+                // 図形の色は新しいパレットの色に順番に置きかえる（色の面のときは面の色をさける）
+                let cands = shapeColorCandidates();
+                if (state.style.layout === 'bold') {
+                    const panel = getPanelColor();
+                    if (cands.some(c => c.hex !== panel)) cands = cands.filter(c => c.hex !== panel);
+                }
+                state.shapes.forEach((s, i) => {
+                    const c = cands[(i + 1) % cands.length];
+                    s.colorId = c.id;
+                    s.hex = c.hex;
+                });
+                renderPresetList();
+                renderPaletteList();
+                renderShapeList();
+                requestDraw();
+                commit();
+                showToast(`配色を「${theme.palettes[idx].name}」にしました`);
+            }));
+        }
+
+        // ===== 雰囲気（描き方） =====
+        function renderStyleOptions() {
+            const wrap = $('style-options');
+            wrap.innerHTML = Object.entries(STYLE_OPTIONS).map(([key, opt]) => `
+                <div role="group" aria-label="${opt.label}">
+                    <p class="label">${opt.label}</p>
+                    <div class="flex flex-wrap gap-2">
+                        ${opt.choices.map(c => `
+                            <button type="button" data-key="${key}" data-val="${c.id}" class="style-btn btn btn-sm ${state.style[key] === c.id ? 'btn-on' : ''}" aria-pressed="${state.style[key] === c.id}" ${c.css ? `style="font-family:${c.css}"` : ''}>${c.label}</button>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+            wrap.querySelectorAll('.style-btn').forEach(btn => btn.addEventListener('click', () => {
+                state.style[btn.dataset.key] = btn.dataset.val;
+                renderStyleOptions();
+                requestDraw();
+                commit();
+            }));
+        }
+
+        // ===== 03 色 =====
+        function renderPaletteList() {
+            const list = $('palette-list');
+            const bg = getBgColor();
+            list.innerHTML = state.palette.map((c, i) => `
+                <div class="palette-row rounded-xl border border-stone-700 bg-stone-950/60 p-3 sm:p-4" data-id="${c.id}">
+                    <div class="flex gap-3 sm:gap-4">
+                        <label class="relative flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20" title="タップして色を変える">
+                            <input type="color" value="${c.hex.toLowerCase()}" class="color-input w-full h-full" aria-label="${i + 1}番目の色を変える">
+                            <span class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-stone-900 border border-stone-500 flex items-center justify-center text-xs text-stone-100 pointer-events-none"><i class="fa-solid fa-pen"></i></span>
+                        </label>
+                        <div class="flex-1 min-w-0 space-y-2">
+                            <div class="flex items-center gap-2">
+                                <input type="text" class="field py-2 color-name" value="${escapeHtml(c.name)}" maxlength="24" placeholder="色の名前（例：祖母の家の縁側の色）" aria-label="${i + 1}番目の色の名前">
+                                <button type="button" class="btn btn-sm btn-ghost btn-danger delete-color flex-shrink-0" title="この色を消す" aria-label="${i + 1}番目の色を消す" ${state.palette.length <= MIN_COLORS ? 'disabled' : ''}><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <span class="font-mono text-sm text-stone-300">${c.hex}</span>
+                                <label class="flex items-center gap-2 text-base text-stone-200 cursor-pointer min-h-[44px]">
+                                    <input type="radio" name="bg-color" class="bg-radio" ${bg.id === c.id ? 'checked' : ''}>背景にする
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            list.querySelectorAll('.palette-row').forEach(row => {
+                const id = row.dataset.id;
+                const color = findColor(id);
+                const colorInput = row.querySelector('.color-input');
+                colorInput.addEventListener('input', e => {
+                    color.hex = normalizeHex(e.target.value);
+                    row.querySelector('.font-mono').textContent = color.hex;
+                    requestDraw();
+                });
+                colorInput.addEventListener('change', () => { renderShapeList(); commit(); });
+                const nameInput = row.querySelector('.color-name');
+                nameInput.addEventListener('input', e => { color.name = e.target.value; });
+                nameInput.addEventListener('change', commit);
+                row.querySelector('.bg-radio').addEventListener('change', () => {
+                    state.bgId = id;
+                    requestDraw();
+                    commit();
+                });
+                row.querySelector('.delete-color').addEventListener('click', () => {
+                    if (state.palette.length <= MIN_COLORS) return;
+                    const label = color.name.trim() || 'この色';
+                    if (!confirm(`「${label}」を消しますか？`)) return;
+                    // この色を使っていた図形は、色だけ残してパレットとのつながりを外す
+                    state.shapes.forEach(s => { if (s.colorId === id) { s.hex = color.hex; s.colorId = null; } });
+                    state.palette = state.palette.filter(c => c.id !== id);
+                    if (state.bgId === id) state.bgId = null;
+                    renderPaletteList();
+                    renderShapeList();
+                    requestDraw();
+                    commit();
+                });
+            });
+
+            $('btn-add-color').disabled = state.palette.length >= MAX_COLORS;
+        }
+
+        // 新しい色を足す（openPicker のときは色選びの画面をすぐに開く）
+        function addColor({ hex, name = '', memory = '' }, openPicker = false) {
+            if (state.palette.length >= MAX_COLORS) {
+                showToast(`色は${MAX_COLORS}色までです。使わない色を消してから足してください`);
+                return null;
+            }
+            const color = { id: uid('c'), hex: normalizeHex(hex), name, memory };
+            state.palette.push(color);
+            renderPaletteList();
+            renderShapeList();
+            requestDraw();
+            commit();
+            const row = document.querySelector(`.palette-row[data-id="${color.id}"]`);
+            if (row) {
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (openPicker) {
+                    try { row.querySelector('.color-input').click(); } catch (e) {}
+                } else {
+                    row.querySelector('.color-name').focus({ preventScroll: true });
+                }
+            }
+            return color;
+        }
+
+        function suggestNewColor() {
+            const cands = shapeColorCandidates();
+            const base = (cands[state.palette.length % cands.length] || {}).hex || '#888888';
+            return mixHex(base, state.palette.length % 2 ? '#FFFFFF' : '#C0392B', 0.3);
+        }
+
+        // ===== 04 形 =====
+        function renderShapeAdd() {
+            const wrap = $('shape-add');
+            wrap.innerHTML = SHAPE_TYPES.map(t => `
+                <button type="button" data-type="${t.id}" class="add-shape btn justify-start whitespace-nowrap px-3" aria-label="${t.label}を足す">
+                    ${shapeIconSvg(t.id, '#e7e5e4', 26)}<span>${t.label}</span>
+                </button>`).join('');
+            wrap.querySelectorAll('.add-shape').forEach(btn => btn.addEventListener('click', () => addShape(btn.dataset.type)));
+        }
+
+        function addShape(type) {
+            const cands = shapeColorCandidates();
+            const c = cands[state.shapes.length % cands.length];
+            // 中央付近に、前の図形と重なりすぎないよう少しずらして置く
+            const n = state.shapes.length;
+            const shape = {
+                id: uid('s'), type,
+                x: Math.round(Math.cos(n * 2.4) * 60), y: Math.round(Math.sin(n * 2.4) * 60),
+                size: 0.6, rotation: 0,
+                colorId: c.id, hex: c.hex
+            };
+            state.shapes.push(shape);
+            state.selectedId = shape.id;
+            renderShapeList();
+            requestDraw();
+            commit();
+            showToast(`${shapeTypeInfo(type).label}を足しました。ポスターの上で動かせます`);
+        }
+
+        function selectShape(id) {
+            state.selectedId = id;
+            renderShapeList();
+            requestDraw();
+        }
+
+        function moveShapeOrder(id, where) {
+            const i = state.shapes.findIndex(s => s.id === id);
+            if (i < 0) return;
+            const [s] = state.shapes.splice(i, 1);
+            let j = i;
+            if (where === 'front') j = state.shapes.length;
+            else if (where === 'back') j = 0;
+            else if (where === 'forward') j = Math.min(state.shapes.length, i + 1);
+            else if (where === 'backward') j = Math.max(0, i - 1);
+            state.shapes.splice(j, 0, s);
+        }
+
+        function renderShapeList() {
+            const list = $('sub-shape-controls');
+            if (!state.shapes.length) {
+                list.innerHTML = '<p class="help subbox">まだ図形がありません。上のボタンから足してください。</p>';
+                return;
+            }
+            // 前面の図形を上に表示する
+            const ordered = [...state.shapes].reverse();
+            list.innerHTML = ordered.map((s, k) => {
+                const info = shapeTypeInfo(s.type);
+                const hex = getShapeHex(s);
+                const sel = s.id === state.selectedId;
+                const pos = state.shapes.length - k; // 1 = いちばん後ろ
+                const header = `
+                    <button type="button" class="shape-select w-full flex items-center gap-3 text-left min-h-[48px]" aria-expanded="${sel}">
+                        <span class="w-12 h-12 rounded-lg bg-stone-200/90 flex items-center justify-center flex-shrink-0">${shapeIconSvg(s.type, hex, 34)}</span>
+                        <span class="flex-1 min-w-0">
+                            <span class="block font-bold text-base text-stone-50">${info.label}${sel ? '<span class="text-amber-200">（えらんでいます）</span>' : ''}</span>
+                        </span>
+                        <i class="fa-solid ${sel ? 'fa-chevron-up' : 'fa-chevron-down'} text-stone-300"></i>
+                    </button>`;
+                if (!sel) {
+                    return `<div class="shape-card rounded-xl border-2 border-stone-700 bg-stone-950/40 hover:border-stone-500 px-3 py-2" data-id="${s.id}">${header}</div>`;
+                }
+                return `
+                <div class="shape-card rounded-xl border-2 border-amber-200/80 bg-stone-800/70 p-3 sm:p-4 space-y-4" data-id="${s.id}">
+                    ${header}
+                    <div>
+                        <p class="label">形</p>
+                        <div class="flex flex-wrap gap-2">
+                            ${SHAPE_TYPES.map(t => `<button type="button" data-type="${t.id}" class="shape-type btn btn-sm ${t.id === s.type ? 'btn-on' : ''}" aria-pressed="${t.id === s.type}">${shapeIconSvg(t.id, t.id === s.type ? '#1c1917' : '#e7e5e4', 20)}${t.label}</button>`).join('')}
+                        </div>
+                    </div>
+                    <div>
+                        <p class="label">色</p>
+                        <div class="flex flex-wrap items-center gap-2">
+                            ${state.palette.map(c => `
+                                <button type="button" data-color="${c.id}" class="shape-color w-12 h-12 rounded-xl border-[3px] ${s.colorId === c.id ? 'border-amber-200 ring-2 ring-amber-200/40' : 'border-white/20'}" style="background:${c.hex}" title="${escapeHtml(c.name || c.hex)}" aria-label="色：${escapeHtml(c.name || c.hex)}" aria-pressed="${s.colorId === c.id}"></button>`).join('')}
+                            <label class="flex items-center gap-2 text-base text-stone-200 ml-1 cursor-pointer">
+                                <input type="color" class="shape-color-free w-12 h-12" value="${hex.toLowerCase()}" aria-label="ほかの色をえらぶ">ほかの色
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="label">大きさ</p>
+                        <div class="flex items-center gap-2">
+                            <button type="button" class="btn btn-sm shape-size-step" data-step="-0.1" aria-label="小さくする"><i class="fa-solid fa-minus"></i></button>
+                            <input type="range" class="shape-size flex-1" min="0.15" max="2.6" step="0.05" value="${s.size}" aria-label="大きさ">
+                            <button type="button" class="btn btn-sm shape-size-step" data-step="0.1" aria-label="大きくする"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="label">向き</p>
+                        <div class="flex items-center gap-2">
+                            <button type="button" class="btn btn-sm shape-rot-step" data-step="-15" aria-label="左に回す"><i class="fa-solid fa-rotate-left"></i></button>
+                            <input type="range" class="shape-rot flex-1" min="-180" max="180" step="5" value="${s.rotation || 0}" aria-label="向き">
+                            <button type="button" class="btn btn-sm shape-rot-step" data-step="15" aria-label="右に回す"><i class="fa-solid fa-rotate-right"></i></button>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="label">重なり <span class="font-normal text-stone-300">（いま後ろから ${pos} 番目）</span></p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" class="btn btn-sm shape-order" data-where="front"><i class="fa-solid fa-angles-up"></i>いちばん前へ</button>
+                            <button type="button" class="btn btn-sm shape-order" data-where="forward"><i class="fa-solid fa-angle-up"></i>ひとつ前へ</button>
+                            <button type="button" class="btn btn-sm shape-order" data-where="back"><i class="fa-solid fa-angles-down"></i>いちばん後ろへ</button>
+                            <button type="button" class="btn btn-sm shape-order" data-where="backward"><i class="fa-solid fa-angle-down"></i>ひとつ後ろへ</button>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <button type="button" class="btn btn-sm shape-dup"><i class="fa-regular fa-clone"></i>おなじ図形をもうひとつ</button>
+                        <button type="button" class="btn btn-sm btn-danger shape-del ml-auto"><i class="fa-solid fa-trash-can"></i>この図形を消す</button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            list.querySelectorAll('.shape-card').forEach(card => {
+                const id = card.dataset.id;
+                const s = state.shapes.find(x => x.id === id);
+                card.querySelector('.shape-select').addEventListener('click', () => selectShape(state.selectedId === id ? null : id));
+                if (id !== state.selectedId) return;
+
+                card.querySelectorAll('.shape-type').forEach(btn => btn.addEventListener('click', () => {
+                    s.type = btn.dataset.type; renderShapeList(); requestDraw(); commit();
+                }));
+                card.querySelectorAll('.shape-color').forEach(btn => btn.addEventListener('click', () => {
+                    const c = findColor(btn.dataset.color);
+                    s.colorId = c.id; s.hex = c.hex; renderShapeList(); requestDraw(); commit();
+                }));
+                const free = card.querySelector('.shape-color-free');
+                free.addEventListener('input', e => { s.colorId = null; s.hex = normalizeHex(e.target.value); requestDraw(); });
+                free.addEventListener('change', () => { renderShapeList(); commit(); });
+                const size = card.querySelector('.shape-size');
+                size.addEventListener('input', e => { s.size = parseFloat(e.target.value); requestDraw(); });
+                size.addEventListener('change', commit);
+                card.querySelectorAll('.shape-size-step').forEach(btn => btn.addEventListener('click', () => {
+                    s.size = Math.min(2.6, Math.max(0.15, +(s.size + parseFloat(btn.dataset.step)).toFixed(2)));
+                    size.value = s.size; requestDraw(); commit();
+                }));
+                const rot = card.querySelector('.shape-rot');
+                rot.addEventListener('input', e => { s.rotation = parseFloat(e.target.value); requestDraw(); });
+                rot.addEventListener('change', commit);
+                card.querySelectorAll('.shape-rot-step').forEach(btn => btn.addEventListener('click', () => {
+                    let r = (s.rotation || 0) + parseFloat(btn.dataset.step);
+                    if (r > 180) r -= 360;
+                    if (r < -180) r += 360;
+                    s.rotation = r; rot.value = r; requestDraw(); commit();
+                }));
+                card.querySelectorAll('.shape-order').forEach(btn => btn.addEventListener('click', () => {
+                    moveShapeOrder(id, btn.dataset.where); renderShapeList(); requestDraw(); commit();
+                }));
+                card.querySelector('.shape-dup').addEventListener('click', () => duplicateShape(id));
+                card.querySelector('.shape-del').addEventListener('click', () => deleteShape(id));
+            });
+        }
+
+        // ===== 図形の操作（一覧・ポスター上のボタン・キーボードで共通） =====
+        function normalizeAngle(deg) {
+            let r = Math.round(deg) % 360;
+            if (r > 180) r -= 360;
+            if (r < -180) r += 360;
+            return r;
+        }
+        function rotateShape(id, step) {
+            const s = state.shapes.find(x => x.id === id);
+            if (!s) return;
+            // 15度ずつ回す。半端な角度のときは、回す向きにある次のきりのよい角度にそろえる
+            const cur = s.rotation || 0;
+            const next = cur % 15 === 0 ? cur + step : (step > 0 ? Math.ceil(cur / 15) * 15 : Math.floor(cur / 15) * 15);
+            s.rotation = normalizeAngle(next);
+            renderShapeList();
+            requestDraw();
+            commit();
+        }
+        function duplicateShape(id) {
+            const s = state.shapes.find(x => x.id === id);
+            if (!s) return;
+            const copy = { ...s, id: uid('s'), x: s.x + 30, y: s.y + 30 };
+            clampShapePosition(copy);
+            state.shapes.splice(state.shapes.indexOf(s) + 1, 0, copy);
+            state.selectedId = copy.id;
+            renderShapeList();
+            requestDraw();
+            commit();
+            showToast('おなじ図形をもうひとつ置きました');
+        }
+        function deleteShape(id) {
+            const s = state.shapes.find(x => x.id === id);
+            if (!s) return;
+            state.shapes = state.shapes.filter(x => x.id !== id);
+            state.selectedId = null;
+            renderShapeList();
+            requestDraw();
+            commit();
+            showToast(`${shapeTypeInfo(s.type).label}を消しました`, { label: 'もとにもどす', run: undo });
+        }
+        function bringToFront(id) {
+            moveShapeOrder(id, 'front');
+            renderShapeList();
+            requestDraw();
+            commit();
+            showToast('いちばん前に出しました');
+        }
+
+        // ===== ポスター上の操作（マウス・タッチ共通の Pointer Events） =====
+        let drag = null;
+        function eventToDesign(e) {
+            const rect = canvas.getBoundingClientRect();
+            return { x: (e.clientX - rect.left) * (W / rect.width), y: (e.clientY - rect.top) * (H / rect.height) };
+        }
+        function clampShapePosition(s) {
+            const { centerX, centerY } = getLayout();
+            const lim = v => v / state.scale;
+            s.x = Math.max(lim(40 - centerX), Math.min(lim(W - 40 - centerX), s.x));
+            s.y = Math.max(lim(40 - centerY), Math.min(lim(H - 40 - centerY), s.y));
+        }
+        function bindCanvasPointer() {
+            canvas.addEventListener('pointerdown', e => {
+                if (e.button !== undefined && e.button > 0) return;
+                const p = eventToDesign(e);
+                const sel = selectedShape();
+                const knobHit = 30 * cssToDesign();
+                if (sel) {
+                    const rh = rotateHandlePosition(sel);
+                    const k = knobPosition(sel);
+                    if (Math.hypot(p.x - rh.x, p.y - rh.y) <= knobHit) {
+                        const g = shapeGeometry(sel);
+                        drag = { mode: 'rotate', id: sel.id, moved: false, startAngle: Math.atan2(p.y - g.cy, p.x - g.cx), startRot: sel.rotation || 0 };
+                    } else if (Math.hypot(p.x - k.x, p.y - k.y) <= knobHit) {
+                        drag = { mode: 'resize', id: sel.id, moved: false };
+                    }
+                }
+                if (!drag) {
+                    const hit = hitTestShape(p.x, p.y);
+                    if (hit) {
+                        const g = shapeGeometry(hit);
+                        drag = { mode: 'move', id: hit.id, dx: p.x - g.cx, dy: p.y - g.cy, moved: false };
+                        if (state.selectedId !== hit.id) selectShape(hit.id);
+                    } else if (state.selectedId) {
+                        selectShape(null);
+                    }
+                }
+                if (drag) {
+                    e.preventDefault();
+                    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+                }
+            });
+            canvas.addEventListener('pointermove', e => {
+                const p = eventToDesign(e);
+                if (!drag) {
+                    // マウスのときは、つかめる場所でカーソルの形を変える
+                    const sel = selectedShape();
+                    let cursor = 'default';
+                    if (sel) {
+                        const k = knobPosition(sel);
+                        const rh = rotateHandlePosition(sel);
+                        if (Math.hypot(p.x - rh.x, p.y - rh.y) <= 30 * cssToDesign()) cursor = 'grab';
+                        else if (Math.hypot(p.x - k.x, p.y - k.y) <= 30 * cssToDesign()) cursor = 'nwse-resize';
+                    }
+                    if (cursor === 'default' && hitTestShape(p.x, p.y)) cursor = 'grab';
+                    canvas.style.cursor = cursor;
+                    return;
+                }
+                const s = state.shapes.find(x => x.id === drag.id);
+                if (!s) return;
+                e.preventDefault();
+                if (drag.mode === 'move') {
+                    const { centerX, centerY } = getLayout();
+                    s.x = (p.x - drag.dx - centerX) / state.scale;
+                    s.y = (p.y - drag.dy - centerY) / state.scale;
+                    clampShapePosition(s);
+                    canvas.style.cursor = 'grabbing';
+                } else if (drag.mode === 'rotate') {
+                    const g = shapeGeometry(s);
+                    const delta = (Math.atan2(p.y - g.cy, p.x - g.cx) - drag.startAngle) * 180 / Math.PI;
+                    let r = drag.startRot + delta;
+                    // 15度の倍数の近くでは、ぴたりと止まるようにする
+                    const snap = Math.round(r / 15) * 15;
+                    if (Math.abs(r - snap) < 4) r = snap;
+                    s.rotation = normalizeAngle(r);
+                    canvas.style.cursor = 'grabbing';
+                } else {
+                    s.size = sizeFromKnob(s, p.x, p.y);
+                }
+                drag.moved = true;
+                requestDraw();
+            });
+            const end = () => {
+                if (!drag) return;
+                const moved = drag.moved;
+                drag = null;
+                if (moved) {
+                    renderShapeList();
+                    commit();
+                }
+                requestDraw(); // 動かしている間は隠していたボタンを、もう一度出す
+            };
+            canvas.addEventListener('pointerup', end);
+            canvas.addEventListener('pointercancel', end);
+            canvas.addEventListener('lostpointercapture', end);
+
+            // キーボードでも動かせるようにする（矢印：移動／＋−：大きさ）
+            canvas.tabIndex = 0;
+            canvas.addEventListener('keydown', e => {
+                const s = selectedShape();
+                if (!s) return;
+                const step = e.shiftKey ? 20 : 5;
+                let handled = true;
+                if (e.key === 'ArrowLeft') s.x -= step;
+                else if (e.key === 'ArrowRight') s.x += step;
+                else if (e.key === 'ArrowUp') s.y -= step;
+                else if (e.key === 'ArrowDown') s.y += step;
+                else if (e.key === '+' || e.key === '=') s.size = Math.min(2.6, s.size + 0.05);
+                else if (e.key === '-') s.size = Math.max(0.15, s.size - 0.05);
+                else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteShape(s.id); return; }
+                else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); rotateShape(s.id, e.shiftKey ? -15 : 15); return; }
+                else handled = false;
+                if (handled) {
+                    e.preventDefault();
+                    clampShapePosition(s);
+                    requestDraw();
+                    commit();
+                }
+            });
+        }
+
+        // ===== 選んだ図形のそばに出すボタン =====
+        function positionShapeToolbar() {
+            const tb = $('shape-toolbar');
+            const sel = selectedShape();
+            if (!sel || drag) {
+                tb.classList.add('hidden');
+                tb.classList.remove('flex');
+                return;
+            }
+            tb.classList.remove('hidden');
+            tb.classList.add('flex');
+            const s = canvas.clientWidth / W; // 設計座標 → 画面上の大きさ
+            const stageW = canvas.clientWidth, stageH = canvas.clientHeight;
+            const w = tb.offsetWidth, h = tb.offsetHeight;
+            const g = shapeGeometry(sel);
+            const R = g.r * shapeTypeInfo(sel.type).extent;
+            const gap = 14;
+            // まず図形の下に。入らなければ回すつまみの上に。それも入らなければ下の端に
+            let y = (g.cy + R) * s + gap;
+            if (y + h > stageH - 4) {
+                const rh = rotateHandlePosition(sel);
+                y = rh.y * s - 24 - h;
+                if (y < 4) y = stageH - h - 4;
+            }
+            const x = Math.min(stageW - w - 4, Math.max(4, g.cx * s - w / 2));
+            tb.style.left = `${Math.round(x)}px`;
+            tb.style.top = `${Math.round(Math.max(4, y))}px`;
+        }
+        function bindShapeToolbar() {
+            $('shape-toolbar').addEventListener('click', e => {
+                const btn = e.target.closest('.tool-btn');
+                const sel = selectedShape();
+                if (!btn || !sel) return;
+                const act = btn.dataset.act;
+                if (act === 'rotl') rotateShape(sel.id, -15);
+                else if (act === 'rotr') rotateShape(sel.id, 15);
+                else if (act === 'front') bringToFront(sel.id);
+                else if (act === 'dup') duplicateShape(sel.id);
+                else if (act === 'del') deleteShape(sel.id);
+            });
+        }
+
+        // ===== 05 ことば =====
+        function renderPosterFields() {
+            $('poster-title').value = state.title;
+            $('poster-message').value = state.message;
+            $('message-count').textContent = [...state.message].length;
+            $('show-swatches').checked = state.showSwatches;
+            $('shape-scale').value = state.scale;
+            $('scale-value').textContent = `${state.scale.toFixed(1)}倍`;
+            $('show-red-outline').checked = state.showGuide;
+        }
+
+        // ===== お知らせ =====
+        // action を渡すと、お知らせの中にボタン（例：「もとにもどす」）を出す
+        let toastTimeout;
+        let toastActionRun = null;
+        function hideToast() {
+            const toast = $('toast');
+            toast.classList.remove('translate-y-0', 'opacity-100');
+            toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            toastActionRun = null;
+        }
+        function showToast(msg, action = null) {
+            const toast = $('toast');
+            const btn = $('toast-action');
+            $('toast-message').textContent = msg;
+            toastActionRun = action ? action.run : null;
+            btn.textContent = action ? action.label : '';
+            btn.classList.toggle('hidden', !action);
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            clearTimeout(toastTimeout);
+            // ボタンがあるときは、押す時間をとって長めに出しておく
+            toastTimeout = setTimeout(hideToast, action ? 6000 : 2800);
+        }
+
+        // ===== 保存（画像） =====
+        // k 倍の解像度で、つまみや枠を消したポスターを別のキャンバスに描く
+        function renderPosterCanvas(k) {
+            const off = document.createElement('canvas');
+            off.width = Math.round(W * k);
+            off.height = Math.round(H * k);
+            const prev = ctx;
+            ctx = off.getContext('2d');
+            try { drawPoster({ k, exporting: true }); } finally { ctx = prev; }
+            return off;
+        }
+        function fileSafe(name) {
+            return (String(name || '').trim().replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 40)) || 'poster';
+        }
+        function downloadPng() {
+            const off = renderPosterCanvas(2);
+            const link = document.createElement('a');
+            link.download = `${fileSafe(state.title)}.png`;
+            link.href = off.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            showToast('画像を保存しました');
+        }
+
+        // ===== 写真から色をひろう（端末の中だけで処理し、送信はしない） =====
+        const photo = { img: null, picked: null, point: null };
+        function drawPhoto() {
+            const c = $('photo-canvas');
+            const pctx = c.getContext('2d');
+            pctx.drawImage(photo.img, 0, 0, c.width, c.height);
+            if (photo.point) {
+                // ひろった場所に印をつける
+                const r = Math.max(10, c.width / 40);
+                pctx.lineWidth = Math.max(2, r / 4);
+                pctx.strokeStyle = '#FFFFFF';
+                pctx.beginPath(); pctx.arc(photo.point.x, photo.point.y, r, 0, Math.PI * 2); pctx.stroke();
+                pctx.lineWidth = Math.max(1, r / 8);
+                pctx.strokeStyle = '#000000';
+                pctx.beginPath(); pctx.arc(photo.point.x, photo.point.y, r + pctx.lineWidth * 2, 0, Math.PI * 2); pctx.stroke();
+            }
+        }
+        function pickPhotoColor(e) {
+            const c = $('photo-canvas');
+            const rect = c.getBoundingClientRect();
+            const x = Math.round((e.clientX - rect.left) * c.width / rect.width);
+            const y = Math.round((e.clientY - rect.top) * c.height / rect.height);
+            if (x < 0 || y < 0 || x >= c.width || y >= c.height) return;
+            // 印を描く前の写真から、周りの数ピクセルの平均をとる
+            const pctx = c.getContext('2d');
+            pctx.drawImage(photo.img, 0, 0, c.width, c.height);
+            const s = 3;
+            const x0 = Math.max(0, x - s), y0 = Math.max(0, y - s);
+            const data = pctx.getImageData(x0, y0, Math.min(c.width - x0, s * 2 + 1), Math.min(c.height - y0, s * 2 + 1)).data;
+            let r = 0, g = 0, b = 0, n = 0;
+            for (let i = 0; i < data.length; i += 4) { r += data[i]; g += data[i + 1]; b += data[i + 2]; n++; }
+            photo.picked = rgbToHex({ r: r / n, g: g / n, b: b / n });
+            photo.point = { x, y };
+            drawPhoto();
+            $('photo-swatch').style.background = photo.picked;
+            $('photo-hex').textContent = photo.picked;
+            $('btn-add-photo-color').disabled = state.palette.length >= MAX_COLORS;
+        }
+        function loadPhoto(file) {
+            if (!file || !/^image\//.test(file.type)) { showToast('写真（画像）のファイルをえらんでください'); return; }
+            const reader = new FileReader();
+            reader.onload = () => {
+                const img = new Image();
+                img.onload = () => {
+                    const c = $('photo-canvas');
+                    const max = 1200;
+                    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+                    c.width = Math.max(1, Math.round(img.naturalWidth * k));
+                    c.height = Math.max(1, Math.round(img.naturalHeight * k));
+                    photo.img = img;
+                    photo.point = null;
+                    photo.picked = null;
+                    $('photo-area').classList.remove('hidden');
+                    drawPhoto();
+                    $('photo-swatch').style.background = 'transparent';
+                    $('photo-hex').textContent = '（写真をタップしてください）';
+                    $('btn-add-photo-color').disabled = true;
+                    $('photo-area').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                };
+                img.onerror = () => showToast('この写真は開けませんでした');
+                img.src = reader.result;
+            };
+            reader.onerror = () => showToast('この写真は開けませんでした');
+            reader.readAsDataURL(file);
+        }
+        function closePhoto() {
+            photo.img = null;
+            photo.picked = null;
+            $('photo-area').classList.add('hidden');
+            const c = $('photo-canvas');
+            c.width = c.height = 1;
+        }
+        function bindPhotoTool() {
+            $('btn-photo').addEventListener('click', () => $('photo-file').click());
+            $('photo-file').addEventListener('change', e => {
+                const file = e.target.files && e.target.files[0];
+                e.target.value = '';
+                loadPhoto(file);
+            });
+            const c = $('photo-canvas');
+            let picking = false;
+            c.addEventListener('pointerdown', e => {
+                if (!photo.img) return;
+                picking = true;
+                try { c.setPointerCapture(e.pointerId); } catch (err) {}
+                pickPhotoColor(e);
+            });
+            c.addEventListener('pointermove', e => { if (picking && photo.img) pickPhotoColor(e); });
+            ['pointerup', 'pointercancel'].forEach(t => c.addEventListener(t, () => { picking = false; }));
+            $('btn-add-photo-color').addEventListener('click', () => {
+                if (!photo.picked) return;
+                if (addColor({ hex: photo.picked, name: '写真からひろった色' })) {
+                    showToast('写真の色をパレットに足しました。名前をつけてみましょう');
+                }
+            });
+            $('btn-photo-close').addEventListener('click', closePhoto);
+        }
+
+        // ===== 印刷（A4） =====
+        function preparePrintImage() {
+            // 3倍（2400×3393px）で描くと、A4 で約300dpi相当になる
+            $('print-img').src = renderPosterCanvas(3).toDataURL('image/png');
+        }
+        function printPoster() {
+            const img = $('print-img');
+            preparePrintImage();
+            const go = () => { setTimeout(() => window.print(), 50); };
+            if (img.complete && img.naturalWidth) go();
+            else img.onload = () => { img.onload = null; go(); };
+        }
+        function bindPrint() {
+            $('btn-print').addEventListener('click', printPoster);
+            // ブラウザのメニューから印刷したときもポスターだけが出るようにする
+            window.addEventListener('beforeprint', () => { if (!$('print-img').src) preparePrintImage(); });
+            window.addEventListener('afterprint', () => { $('print-img').removeAttribute('src'); });
+        }
+
+        // ===== イベント =====
+        function bindEvents() {
+            const author = $('author-name');
+            author.addEventListener('input', e => { state.author = e.target.value; requestDraw(); });
+            author.addEventListener('change', commit);
+
+            $('btn-add-color').addEventListener('click', () => addColor({ hex: suggestNewColor() }, true));
+
+            const scale = $('shape-scale');
+            scale.addEventListener('input', e => {
+                state.scale = parseFloat(e.target.value);
+                $('scale-value').textContent = `${state.scale.toFixed(1)}倍`;
+                requestDraw();
+            });
+            scale.addEventListener('change', commit);
+
+            $('show-red-outline').addEventListener('change', e => {
+                state.showGuide = e.target.checked;
+                requestDraw();
+                commit();
+            });
+
+            const message = $('poster-message');
+            message.addEventListener('input', e => {
+                state.message = e.target.value;
+                $('message-count').textContent = [...state.message].length;
+                requestDraw();
+            });
+            message.addEventListener('change', commit);
+            $('show-swatches').addEventListener('change', e => {
+                state.showSwatches = e.target.checked;
+                requestDraw();
+                commit();
+            });
+
+            const title = $('poster-title');
+            title.addEventListener('input', e => { state.title = e.target.value; requestDraw(); });
+            title.addEventListener('change', commit);
+
+            $('btn-undo').addEventListener('click', undo);
+            $('btn-more-proposals').addEventListener('click', makeProposals);
+            $('toast-action').addEventListener('click', () => { const run = toastActionRun; hideToast(); if (run) run(); });
+            $('btn-download').addEventListener('click', downloadPng);
+            bindCanvasPointer();
+        }
+
+        // ===== ポスター描画 =====
+        function drawPoster({ k = DISPLAY_K, exporting = false } = {}) {
+            if (!exporting) {
+                // 画面のキャンバスは2倍の解像度で持つ
+                if (canvas.width !== W * DISPLAY_K) { canvas.width = W * DISPLAY_K; canvas.height = H * DISPLAY_K; }
+                k = DISPLAY_K;
+            }
+            const st = state.style;
+            const bg = getBgColor().hex;
+            const text = getTextColors();
+
+            ctx.setTransform(k, 0, 0, k, 0, 0);
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = 'transparent';
+
+            drawBackground(bg, text, st.background);
+
+            // 文字の位置を先に決める（「色の面」の高さや縦書きの長さは文字の量で決まる）
+            const plan = planTypography(text);
+            if (st.layout === 'bold') {
+                boldPanel = { x: 48, y: 48, w: W - 96, h: Math.max(480, plan.top - 34 - 48) };
+                ctx.fillStyle = getPanelColor();
+                ctx.fillRect(boldPanel.x, boldPanel.y, boldPanel.w, boldPanel.h);
+            }
+            drawFrame(bg, text, st.frame);
+
+            const { centerX, centerY, baseSize } = getLayout();
+
+            // 背景の円形の線（色の面のときは描かない）
+            if (st.layout !== 'bold') {
+                ctx.strokeStyle = mixHex(bg, text.main, 0.14);
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, baseSize * 1.5, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // 図形（色の面のときは面の中だけに描く）
+            ctx.save();
+            if (st.layout === 'bold') {
+                ctx.beginPath();
+                ctx.rect(boldPanel.x, boldPanel.y, boldPanel.w, boldPanel.h);
+                ctx.clip();
+            }
+            state.shapes.forEach(s => drawShape(s, bg, text, k));
+            ctx.restore();
+
+            plan.ops.forEach(op => op());
+
+            // 選択中の図形の枠とつまみ（画面だけ。保存・印刷には出さない）
+            const sel = selectedShape();
+            if (!exporting && sel) drawSelection(sel, k);
+            if (!exporting) positionShapeToolbar();
+        }
+
+        // ----- 背景 -----
+        // 毎回おなじ模様になるよう、決まった種から乱数をつくる
+        function seededRandom(seed) {
+            let a = seed >>> 0;
+            return () => {
+                a = (a + 0x6D2B79F5) >>> 0;
+                let t = a;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+        }
+        function drawBackground(bg, text, kind) {
+            if (kind === 'solid') {
+                ctx.fillStyle = bg;
+                ctx.fillRect(0, 0, W, H);
+                return;
+            }
+            if (kind === 'glow') {
+                // 図形のあたりがほんのり明るい光
+                const { centerX, centerY } = getLayout();
+                const light = luminance(bg) > 0.5;
+                const g = ctx.createRadialGradient(centerX, centerY - 40, 0, centerX, centerY - 40, 820);
+                g.addColorStop(0, adjustBrightness(bg, light ? 6 : 16));
+                g.addColorStop(0.55, bg);
+                g.addColorStop(1, adjustBrightness(bg, light ? -12 : -6));
+                ctx.fillStyle = g;
+                ctx.fillRect(0, 0, W, H);
+                return;
+            }
+            // 紙：ゆるやかなグラデーション
+            const g = ctx.createLinearGradient(0, 0, W, H);
+            g.addColorStop(0, bg);
+            g.addColorStop(1, adjustBrightness(bg, -8));
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, W, H);
+            if (kind === 'washi') {
+                // 和紙：細い繊維と小さな粒
+                const rnd = seededRandom(20261128);
+                ctx.save();
+                ctx.strokeStyle = text.main;
+                ctx.fillStyle = text.main;
+                for (let i = 0; i < 170; i++) {
+                    const x = rnd() * W, y = rnd() * H;
+                    const len = 18 + rnd() * 60, ang = rnd() * Math.PI * 2;
+                    ctx.globalAlpha = 0.035 + rnd() * 0.04;
+                    ctx.lineWidth = 0.5 + rnd() * 0.8;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.quadraticCurveTo(x + Math.cos(ang + 0.6) * len * 0.5, y + Math.sin(ang + 0.6) * len * 0.5, x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+                    ctx.stroke();
+                }
+                for (let i = 0; i < 320; i++) {
+                    ctx.globalAlpha = 0.04 + rnd() * 0.05;
+                    ctx.beginPath();
+                    ctx.arc(rnd() * W, rnd() * H, 0.4 + rnd() * 1.1, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
+
+        // ----- 枠 -----
+        function drawFrame(bg, text, kind) {
+            if (kind === 'none') return;
+            const c = mixHex(bg, text.main, 0.25);
+            ctx.save();
+            ctx.strokeStyle = c;
+            if (kind === 'double') {
+                ctx.lineWidth = 1.6;
+                ctx.strokeRect(38, 38, W - 76, H - 76);
+                ctx.lineWidth = 0.8;
+                ctx.strokeRect(48, 48, W - 96, H - 96);
+            } else if (kind === 'corner') {
+                ctx.lineWidth = 0.8;
+                ctx.globalAlpha = 0.6;
+                ctx.strokeRect(48, 48, W - 96, H - 96);
+                ctx.globalAlpha = 1;
+                ctx.lineWidth = 2;
+                const m = 34, len = 64;
+                [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]].forEach(([x, y, sx, sy]) => {
+                    ctx.beginPath();
+                    ctx.moveTo(x + sx * len, y);
+                    ctx.lineTo(x, y);
+                    ctx.lineTo(x, y + sy * len);
+                    ctx.stroke();
+                    ctx.fillStyle = c;
+                    ctx.save();
+                    ctx.translate(x + sx * 9, y + sy * 9);
+                    ctx.rotate(Math.PI / 4);
+                    ctx.fillRect(-3, -3, 6, 6);
+                    ctx.restore();
+                });
+            } else {
+                ctx.lineWidth = 1;
+                ctx.strokeRect(48, 48, W - 96, H - 96);
+            }
+            ctx.restore();
+        }
+
+        // ----- 図形 -----
+        function drawShape(s, bg, text, k) {
+            const g = shapeGeometry(s);
+            const color = getShapeHex(s);
+            const mode = state.style.shapeStyle;
+            ctx.save();
+            ctx.translate(g.cx, g.cy);
+            ctx.rotate(g.rot);
+            // 影の大きさは座標変換の影響を受けないので倍率を掛ける
+            if (mode === 'soft') {
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.12)';
+                ctx.shadowBlur = 24 * k;
+                ctx.shadowOffsetY = 10 * k;
+            } else if (mode === 'paper') {
+                // 切り絵：ぼかさない、ずらした影
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.22)';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 5 * k;
+                ctx.shadowOffsetY = 7 * k;
+            }
+            const alpha = mode === 'soft' ? 0.86 : 1;
+            if (mode === 'line') {
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color;
+                ctx.lineWidth = Math.max(2.5, g.r * 0.045);
+                ctx.lineJoin = 'round';
+                if (s.type === 'double-circle') {
+                    [1, 0.78, 0.45].forEach(f => { ctx.beginPath(); ctx.arc(0, 0, g.r * f, 0, Math.PI * 2); ctx.stroke(); });
+                    ctx.beginPath(); ctx.arc(0, 0, g.r * 0.12, 0, Math.PI * 2); ctx.fill();
+                } else if (s.type === 'line') {
+                    ctx.fill(shapePath(s.type, g.r));
+                } else {
+                    ctx.stroke(shapePath(s.type, g.r));
+                }
+            } else if (s.type === 'double-circle') {
+                drawDoubleCircle(g.r, color, mixHex(color, bg, 0.55), text.main, mode === 'soft');
+            } else {
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = color;
+                ctx.fill(shapePath(s.type, g.r));
+            }
+            ctx.restore();
+        }
+
+        function drawDoubleCircle(radius, outerColor, innerColor, accentColor, translucent = true) {
+            ctx.save();
+            ctx.globalAlpha = translucent ? 0.88 : 1;
+            ctx.strokeStyle = outerColor;
+            ctx.lineWidth = radius * 0.14;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.globalAlpha = translucent ? 0.92 : 1;
+            ctx.fillStyle = innerColor;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 0.45, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = accentColor;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 0.12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // ----- 選択中の図形の枠とつまみ -----
+        function drawSelection(sel, k) {
+            const g = shapeGeometry(sel);
+            const px = cssToDesign();
+            if (state.showGuide) {
+                ctx.save();
+                ctx.translate(g.cx, g.cy);
+                ctx.rotate(g.rot);
+                ctx.strokeStyle = '#E11D48';
+                ctx.lineWidth = 2.5 * px;
+                ctx.setLineDash([8 * px, 5 * px]);
+                ctx.stroke(shapePath(sel.type, g.r + 10 * px));
+                ctx.restore();
+            } else {
+                // どの図形を選んでいるか分かるよう、白と黒の細い点線で輪郭をなぞる
+                ctx.save();
+                ctx.translate(g.cx, g.cy);
+                ctx.rotate(g.rot);
+                const outline = shapePath(sel.type, g.r);
+                ctx.lineWidth = 3 * px;
+                ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+                ctx.stroke(outline);
+                ctx.lineWidth = 1.6 * px;
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.setLineDash([6 * px, 4 * px]);
+                ctx.stroke(outline);
+                ctx.restore();
+            }
+            const kr = 15 * px;
+
+            // 回すつまみ：図形の真上の丸と、ぐるりと回る矢印
+            const rh = rotateHandlePosition(sel);
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+            ctx.lineWidth = 2 * px;
+            ctx.setLineDash([4 * px, 3 * px]);
+            ctx.beginPath();
+            ctx.moveTo(rh.x, rh.y + kr);
+            ctx.lineTo(rh.x, Math.min(g.cy, rh.y + kr + 22 * px));
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.shadowColor = 'rgba(0,0,0,0.35)';
+            ctx.shadowBlur = 6 * k;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.strokeStyle = '#1C1917';
+            ctx.lineWidth = 2.5 * px;
+            ctx.beginPath();
+            ctx.arc(rh.x, rh.y, kr, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowColor = 'transparent';
+            ctx.stroke();
+            const ar = kr * 0.5;
+            ctx.lineWidth = 2 * px;
+            ctx.beginPath();
+            ctx.arc(rh.x, rh.y, ar, -Math.PI * 0.85, Math.PI * 0.55);
+            ctx.stroke();
+            // 矢印の先
+            const ea = Math.PI * 0.55;
+            const ex = rh.x + ar * Math.cos(ea), ey = rh.y + ar * Math.sin(ea);
+            ctx.beginPath();
+            ctx.moveTo(ex - 4 * px, ey + 1 * px);
+            ctx.lineTo(ex, ey);
+            ctx.lineTo(ex + 1.5 * px, ey - 4.5 * px);
+            ctx.stroke();
+            ctx.restore();
+
+            const kp = knobPosition(sel);
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,0.35)';
+            ctx.shadowBlur = 6 * k;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.strokeStyle = '#1C1917';
+            ctx.lineWidth = 2.5 * px;
+            ctx.beginPath();
+            ctx.arc(kp.x, kp.y, kr, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowColor = 'transparent';
+            ctx.stroke();
+            // 斜めの矢印（大きさを変えられる印）
+            const a = kr * 0.45;
+            ctx.lineWidth = 2 * px;
+            ctx.beginPath();
+            ctx.moveTo(kp.x - a, kp.y - a); ctx.lineTo(kp.x + a, kp.y + a);
+            ctx.moveTo(kp.x - a, kp.y - a); ctx.lineTo(kp.x - a + a * 0.8, kp.y - a);
+            ctx.moveTo(kp.x - a, kp.y - a); ctx.lineTo(kp.x - a, kp.y - a + a * 0.8);
+            ctx.moveTo(kp.x + a, kp.y + a); ctx.lineTo(kp.x + a - a * 0.8, kp.y + a);
+            ctx.moveTo(kp.x + a, kp.y + a); ctx.lineTo(kp.x + a, kp.y + a - a * 0.8);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // 字間つきで文字を描く。ctx.letterSpacing 非対応のブラウザでは1文字ずつ並べて同じ見た目にする
+        const SUPPORTS_LETTER_SPACING = 'letterSpacing' in CanvasRenderingContext2D.prototype;
+        function measureSpaced(text, spacing) {
+            if (!spacing) return ctx.measureText(text).width;
+            if (SUPPORTS_LETTER_SPACING) {
+                ctx.letterSpacing = `${spacing}px`;
+                const w = ctx.measureText(text).width;
+                ctx.letterSpacing = '0px';
+                return w;
+            }
+            let w = 0;
+            for (const ch of text) w += ctx.measureText(ch).width + spacing;
+            return w;
+        }
+        function fillSpacedText(text, x, y, spacing = 0, align = 'left') {
+            const total = measureSpaced(text, spacing);
+            let startX = x;
+            if (align === 'center') startX = x - total / 2;
+            else if (align === 'right') startX = x - total;
+            const prevAlign = ctx.textAlign;
+            ctx.textAlign = 'left';
+            if (!spacing) {
+                ctx.fillText(text, startX, y);
+            } else if (SUPPORTS_LETTER_SPACING) {
+                ctx.letterSpacing = `${spacing}px`;
+                ctx.fillText(text, startX, y);
+                ctx.letterSpacing = '0px';
+            } else {
+                let cx = startX;
+                for (const ch of text) {
+                    ctx.fillText(ch, cx, y);
+                    cx += ctx.measureText(ch).width + spacing;
+                }
+            }
+            ctx.textAlign = prevAlign;
+        }
+
+        // ===== ポスターの文字組み =====
+        const MINCHO = '"Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif';
+        const hasJapanese = s => /[^\x00-\x7F]/.test(s);
+
+        // 文字の形（明朝・丸ゴシック・ゴシック）ごとの書体
+        function fontSet() {
+            const f = state.style.font;
+            if (f === 'maru') {
+                return {
+                    title: size => `700 ${size}px "Zen Maru Gothic", sans-serif`,
+                    body: (size, w = 500) => `${w} ${size}px "Zen Maru Gothic", sans-serif`,
+                    spacing: (size, jp) => (jp ? size * 0.04 : 1)
+                };
+            }
+            if (f === 'gothic') {
+                return {
+                    title: size => `700 ${size}px "BIZ UDPGothic", sans-serif`,
+                    body: (size, w = 400) => `${w} ${size}px "BIZ UDPGothic", sans-serif`,
+                    spacing: (size, jp) => (jp ? size * 0.05 : 1)
+                };
+            }
+            return {
+                title: (size, jp) => (jp ? `600 ${size}px ${MINCHO}` : `600 ${size}px "Cinzel", ${MINCHO}`),
+                body: (size, w = 400) => `${w} ${size}px ${MINCHO}`,
+                spacing: (size, jp) => (jp ? size * 0.06 : 2)
+            };
+        }
+
+        // 日本語の追加字形（Google Fonts は文字ごとに分割配信）を先に読み込ませる。読み込み後は loadingdone で描き直される
+        const requestedGlyphs = new Set();
+        function ensureGlyphs(font, text) {
+            if (!document.fonts || !document.fonts.load || !text) return;
+            const key = font + '|' + text;
+            if (requestedGlyphs.has(key)) return;
+            requestedGlyphs.add(key);
+            document.fonts.load(font, text).catch(() => {});
+        }
+
+        // 折り返し：英語は単語単位、日本語は1文字単位。句読点や閉じかっこは行頭に来ないようにする
+        const NO_LINE_START = '、。，．・：；？！ー―…）」』】〕〉》’”ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮ,.!?)';
+        function wrapText(text, maxWidth, spacing = 0, maxLines = Infinity) {
+            const tokens = String(text).replace(/\r/g, '').match(/[A-Za-z0-9'’\-]+[.,!?:;]*\s*|\n|\s+|./gu) || [];
+            const lines = [];
+            let line = '';
+            for (const tok of tokens) {
+                if (tok === '\n') { lines.push(line.trimEnd()); line = ''; continue; }
+                const candidate = line + tok;
+                if (line.trim() && measureSpaced(candidate.trimEnd(), spacing) > maxWidth) {
+                    if (NO_LINE_START.includes(tok[0])) {
+                        // 句読点などが行頭に来ないよう、直前の1文字といっしょに次の行へ送る
+                        const chars = [...line.trimEnd()];
+                        const last = chars.length > 1 ? chars.pop() : '';
+                        lines.push(chars.join(''));
+                        line = last + tok;
+                    } else {
+                        lines.push(line.trimEnd());
+                        line = tok.trimStart();
+                    }
+                } else {
+                    line = candidate;
+                }
+            }
+            if (line.trim() || !lines.length) lines.push(line.trimEnd());
+            if (lines.length > maxLines) {
+                const kept = lines.slice(0, maxLines);
+                kept[maxLines - 1] = truncateToWidth(kept[maxLines - 1] + lines[maxLines], maxWidth, spacing, true);
+                return kept;
+            }
+            return lines;
+        }
+        function truncateToWidth(text, maxWidth, spacing = 0, force = false) {
+            if (!force && measureSpaced(text, spacing) <= maxWidth) return text;
+            const chars = [...text];
+            while (chars.length && measureSpaced(chars.join('') + '…', spacing) > maxWidth) chars.pop();
+            return chars.join('') + '…';
+        }
+
+        // タイトル（横書き）：大きい文字から試し、おさまる大きさを選ぶ（40px以上は1行、それより小さければ2行まで）
+        function layoutTitle(title, maxWidth, maxSize = 56) {
+            const jp = hasJapanese(title);
+            const fs = fontSet();
+            for (let size = maxSize; size >= 24; size -= 2) {
+                const font = fs.title(size, jp);
+                const spacing = fs.spacing(size, jp);
+                ctx.font = font;
+                const lines = wrapText(title, maxWidth, spacing);
+                if (lines.length <= (size >= 40 ? 1 : 2)) return { font, spacing, lines, lineHeight: size * 1.25 };
+            }
+            const font = fs.title(24, jp);
+            const spacing = fs.spacing(24, jp);
+            ctx.font = font;
+            return { font, spacing, lines: wrapText(title, maxWidth, spacing, 2), lineHeight: 30 };
+        }
+
+        // ----- 縦書き -----
+        const V_ROTATE = 'ー－—―…‥〜～（）「」『』【】〈〉《》〔〕()[]-=＝';
+        const V_PUNCT = '、。，．';
+        const V_SMALL = 'ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮヵヶ';
+        // 縦書きのタイトル：右から左へ最大2列。おさまる大きさを選ぶ
+        function layoutVerticalTitle(title, maxHeight) {
+            const fs = fontSet();
+            const chars = [...title.replace(/\s+/g, '　')];
+            for (let size = 66; size >= 26; size -= 2) {
+                const step = size * 1.08;
+                const perCol = Math.max(1, Math.floor(maxHeight / step));
+                const cols = Math.ceil(chars.length / perCol);
+                if (cols <= (size >= 44 ? 1 : 2)) return { font: fs.title(size, true), size, step, perCol, chars };
+            }
+            const size = 26, step = size * 1.08, perCol = Math.max(1, Math.floor(maxHeight / step));
+            let kept = chars;
+            if (chars.length > perCol * 2) kept = [...chars.slice(0, perCol * 2 - 1), '…'];
+            return { font: fs.title(size, true), size, step, perCol, chars: kept };
+        }
+        function drawVerticalChars(vt, xRight, yTop) {
+            ctx.save();
+            ctx.font = vt.font;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            vt.chars.forEach((ch, i) => {
+                const col = Math.floor(i / vt.perCol), row = i % vt.perCol;
+                const cx = xRight - vt.size / 2 - col * vt.size * 1.45;
+                const cy = yTop + vt.step * row + vt.step / 2;
+                if (V_ROTATE.includes(ch)) {
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.rotate(Math.PI / 2);
+                    ctx.fillText(ch, 0, 0);
+                    ctx.restore();
+                } else if (V_PUNCT.includes(ch)) {
+                    ctx.fillText(ch, cx + vt.size * 0.6, cy - vt.size * 0.6);
+                } else if (V_SMALL.includes(ch)) {
+                    ctx.fillText(ch, cx + vt.size * 0.12, cy - vt.size * 0.12);
+                } else {
+                    ctx.fillText(ch, cx, cy);
+                }
+            });
+            ctx.restore();
+        }
+
+        // 文字の位置を下から順に決め、描く処理（ops）と、いちばん上の位置（top）を返す
+        function planTypography(text) {
+            const st = state.style;
+            const fs = fontSet();
+            const ops = [];
+            const centered = st.layout === 'centered';
+            const left = 72, right = W - 72, maxWidth = right - left;
+            const ax = centered ? W / 2 : left;
+            const align = centered ? 'center' : 'left';
+            const theme = themeById(state.themeId);
+            const n = state.palette.length;
+
+            // 上部の小さな英字
+            const topLabel = `${theme.en.toUpperCase()} — HOTEL GALLERY EDITION`;
+            ops.push(() => {
+                let color = text.sub;
+                if (st.layout === 'bold') {
+                    const panel = getPanelColor();
+                    color = contrast(panel, '#111111') > contrast(panel, '#FFFFFF') ? '#1C1C1C' : '#F5F3EE';
+                }
+                ctx.fillStyle = color;
+                ctx.font = '500 11px "Montserrat", sans-serif';
+                fillSpacedText(topLabel, centered ? W / 2 : left + (st.layout === 'bold' ? 18 : 0), st.layout === 'bold' ? 86 : 90, 5, align);
+            });
+
+            // フッター：作者名と小さな英字
+            const footerY = H - 66;
+            const author = state.author.trim();
+            if (author) {
+                ops.push(() => {
+                    ctx.font = fs.body(15, 500);
+                    ensureGlyphs(ctx.font, '作' + author);
+                    ctx.fillStyle = text.main;
+                    const label = `作　${truncateToWidth(author, 300)}`;
+                    if (centered) {
+                        fillSpacedText(label, W / 2, footerY, 1, 'center');
+                    } else {
+                        ctx.fillStyle = text.sub;
+                        ctx.font = '400 9px "Montserrat", sans-serif';
+                        fillSpacedText('ARTIST', left, footerY, 3);
+                        ctx.fillStyle = text.main;
+                        ctx.font = fs.body(15, 500);
+                        fillSpacedText(label, left + 64, footerY, 1);
+                    }
+                });
+            }
+            ops.push(() => {
+                ctx.fillStyle = text.sub;
+                ctx.font = '400 9px "Montserrat", sans-serif';
+                fillSpacedText('© 2026 HOTEL GALLERY EDITION', centered ? W / 2 : right, H - 40, 1.5, centered ? 'center' : 'right');
+            });
+
+            // 色見本：横に並べた帯（まんなかの配置では丸）。のせるかどうかはチェックで決める
+            // キャプションは16進数のカラーコードだけ
+            let cursorY = footerY - 40;
+            if (state.showSwatches) {
+                const labelH = 22;
+                const barHeight = 22;
+                const barY = footerY - 34 - labelH - barHeight;
+                ops.push(() => {
+                    const itemW = centered ? Math.min(118, maxWidth / n) : maxWidth / n;
+                    const startX = centered ? W / 2 - (itemW * n) / 2 : left;
+                    state.palette.forEach((c, i) => {
+                        const x0 = startX + i * itemW;
+                        const cx = x0 + itemW / 2;
+                        ctx.fillStyle = c.hex;
+                        if (centered) {
+                            ctx.beginPath();
+                            ctx.arc(cx, barY + barHeight / 2, 12, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.strokeStyle = mixHex(c.hex, text.main, 0.25);
+                            ctx.lineWidth = 0.8;
+                            ctx.stroke();
+                        } else {
+                            ctx.fillRect(x0, barY, itemW, barHeight);
+                        }
+                        // カラーコード（16進数）
+                        ctx.fillStyle = text.sub;
+                        ctx.font = '400 9px "Montserrat", monospace';
+                        fillSpacedText(c.hex, cx, barY + barHeight + 15, 1, 'center');
+                    });
+                });
+                cursorY = barY - 30;
+            }
+
+            // ひとこと（3行まで。色の面のときは2行まで）
+            const message = state.message.trim();
+            if (message) {
+                ctx.font = fs.body(16, 400);
+                const lines = wrapText(`「${message}」`, maxWidth, 0.5, st.layout === 'bold' ? 2 : 3);
+                const lh = 27;
+                const top = cursorY - (lines.length - 1) * lh;
+                const font = ctx.font;
+                ops.push(() => {
+                    ctx.font = font;
+                    ensureGlyphs(font, '「」' + message);
+                    ctx.fillStyle = text.main;
+                    lines.forEach((ln, i) => fillSpacedText(ln, ax, top + i * lh, 0.5, align));
+                });
+                cursorY = top - lh - 18;
+            }
+
+            // タイトル（空のときは何も描かない）
+            const title = state.title.trim();
+            if (!title) return { top: cursorY, ops };
+            if (st.layout === 'vertical') {
+                // 縦書きのタイトル：右上から、ひとことの上までの高さに入れる
+                const yTop = 128;
+                const vt = layoutVerticalTitle(title, Math.max(160, cursorY - 20 - yTop));
+                const xRight = right - 6;
+                const cols = Math.ceil(vt.chars.length / vt.perCol);
+                const colsWidth = vt.size + (cols - 1) * vt.size * 1.45;
+                const usedH = Math.min(vt.chars.length, vt.perCol) * vt.step;
+                ops.push(() => {
+                    ensureGlyphs(vt.font, title);
+                    ctx.fillStyle = text.main;
+                    drawVerticalChars(vt, xRight, yTop);
+                    // タイトルの左に細い縦線
+                    ctx.strokeStyle = mixHex(getBgColor().hex, text.main, 0.35);
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(xRight - colsWidth - 18, yTop + 6);
+                    ctx.lineTo(xRight - colsWidth - 18, yTop + usedH - 6);
+                    ctx.stroke();
+                });
+                return { top: cursorY, ops };
+            }
+
+            // タイトル（横書き）
+            const tl = layoutTitle(title, maxWidth, st.layout === 'bold' ? 64 : 56);
+            const titleTop = cursorY - (tl.lines.length - 1) * tl.lineHeight;
+            ops.push(() => {
+                ctx.font = tl.font;
+                ensureGlyphs(tl.font, title);
+                ctx.fillStyle = text.main;
+                tl.lines.forEach((ln, i) => fillSpacedText(ln, ax, titleTop + i * tl.lineHeight, tl.spacing, align));
+                if (centered) {
+                    // まんなかの配置：タイトルの上に短い飾り線
+                    const y = titleTop - tl.lineHeight * 0.9;
+                    ctx.strokeStyle = mixHex(getBgColor().hex, text.main, 0.4);
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(W / 2 - 40, y); ctx.lineTo(W / 2 + 40, y);
+                    ctx.stroke();
+                }
+            });
+            const fontPx = parseFloat(tl.font.match(/(\d+)px/)[1]);
+            return { top: titleTop - fontPx, ops };
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
